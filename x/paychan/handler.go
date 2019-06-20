@@ -26,16 +26,28 @@ func RegisterRoutes(r weave.Registry, auth x.Authenticator, cash cash.Controller
 
 	bucket := NewPaymentChannelBucket()
 	r.Handle(pathCreatePaymentChannelMsg,
-		&createPaymentChannelHandler{auth: auth, bucket: bucket, cash: cash})
+		&createPaymentChannelHandler{
+			auth:   auth,
+			bucket: orm.WithLastModified(bucket),
+			cash:   cash,
+		})
 	r.Handle(pathTransferPaymentChannelMsg,
-		&transferPaymentChannelHandler{auth: auth, bucket: bucket, cash: cash})
+		&transferPaymentChannelHandler{
+			auth:   auth,
+			bucket: orm.WithLastModified(bucket),
+			cash:   cash,
+		})
 	r.Handle(pathClosePaymentChannelMsg,
-		&closePaymentChannelHandler{auth: auth, bucket: bucket, cash: cash})
+		&closePaymentChannelHandler{
+			auth:   auth,
+			bucket: orm.WithLastModified(bucket),
+			cash:   cash,
+		})
 }
 
 type createPaymentChannelHandler struct {
 	auth   x.Authenticator
-	bucket orm.ModelBucket
+	bucket orm.UnboundModelBucket
 	cash   cash.Controller
 }
 
@@ -69,7 +81,7 @@ func (h *createPaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVStor
 		return nil, err
 	}
 
-	key, err := h.bucket.Put(db, nil, &PaymentChannel{
+	key, err := h.bucket.Bind(ctx).Put(db, nil, &PaymentChannel{
 		Metadata:     &weave.Metadata{},
 		Src:          msg.Src,
 		SenderPubkey: msg.SenderPubkey,
@@ -94,7 +106,7 @@ func (h *createPaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVStor
 
 type transferPaymentChannelHandler struct {
 	auth   x.Authenticator
-	bucket orm.ModelBucket
+	bucket orm.UnboundModelBucket
 	cash   cash.Controller
 }
 
@@ -117,7 +129,7 @@ func (h *transferPaymentChannelHandler) validate(ctx weave.Context, db weave.KVS
 	}
 
 	var pc PaymentChannel
-	if err := h.bucket.One(db, msg.Payment.ChannelID, &pc); err != nil {
+	if err := h.bucket.Bind(ctx).One(db, msg.Payment.ChannelID, &pc); err != nil {
 		return nil, err
 	}
 
@@ -153,8 +165,10 @@ func (h *transferPaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVSt
 		return nil, err
 	}
 
+	bucket := h.bucket.Bind(ctx)
+
 	var pc PaymentChannel
-	if err := h.bucket.One(db, msg.Payment.ChannelID, &pc); err != nil {
+	if err := bucket.One(db, msg.Payment.ChannelID, &pc); err != nil {
 		return nil, err
 	}
 
@@ -186,11 +200,11 @@ func (h *transferPaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVSt
 	// To avoid "empty" payment channels in our database, delete it without
 	// waiting for the explicit close request.
 	if pc.Transferred.Equals(*pc.Total) {
-		err := h.bucket.Delete(db, msg.Payment.ChannelID)
+		err := bucket.Delete(db, msg.Payment.ChannelID)
 		return nil, err
 	}
 
-	if _, err := h.bucket.Put(db, msg.Payment.ChannelID, &pc); err != nil {
+	if _, err := bucket.Put(db, msg.Payment.ChannelID, &pc); err != nil {
 		return nil, err
 	}
 	return &weave.DeliverResult{}, nil
@@ -198,7 +212,7 @@ func (h *transferPaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVSt
 
 type closePaymentChannelHandler struct {
 	auth   x.Authenticator
-	bucket orm.ModelBucket
+	bucket orm.UnboundModelBucket
 	cash   cash.Controller
 }
 
@@ -218,14 +232,16 @@ func (h *closePaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVStore
 		return nil, errors.Wrap(err, "load msg")
 	}
 
+	bucket := h.bucket.Bind(ctx)
+
 	var pc PaymentChannel
-	if err := h.bucket.One(db, msg.ChannelID, &pc); err != nil {
+	if err := bucket.One(db, msg.ChannelID, &pc); err != nil {
 		return nil, err
 	}
 
 	// If payment channel funds were exhausted anyone is free to close it.
 	if pc.Total.Equals(*pc.Transferred) {
-		err := h.bucket.Delete(db, msg.ChannelID)
+		err := bucket.Delete(db, msg.ChannelID)
 		return nil, err
 	}
 
@@ -247,7 +263,7 @@ func (h *closePaymentChannelHandler) Deliver(ctx weave.Context, db weave.KVStore
 	if err := h.cash.MoveCoins(db, src, pc.Src, diff); err != nil {
 		return nil, err
 	}
-	if err := h.bucket.Delete(db, msg.ChannelID); err != nil {
+	if err := bucket.Delete(db, msg.ChannelID); err != nil {
 		return nil, err
 	}
 	return &weave.DeliverResult{}, nil
