@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -9,8 +10,33 @@ import (
 
 	"github.com/iov-one/weave"
 	bnsd "github.com/iov-one/weave/cmd/bnsd/app"
+	"github.com/iov-one/weave/crypto"
+	"github.com/iov-one/weave/weavetest/assert"
 	"github.com/iov-one/weave/x/cash"
 )
+
+// TestSignMessage is an internal test code by Cosmostation
+func TestSignMessage(t *testing.T) {
+	const mnemonic = `guide worth axis butter craft donkey beef carry mechanic road seven food example ensure tip unit various flight antenna shuffle drill slim eyebrow lava`
+	priv, err := keygen(mnemonic, "m/44'/234'/0'")
+	if err != nil {
+		t.Fatalf("cannot generate key: %s", err)
+	}
+
+	privKey := crypto.PrivKeyEd25519FromSeed(priv.Seed())
+
+	msg := []byte("foobar")
+
+	sig, err := privKey.Sign(msg)
+	assert.Nil(t, err)
+
+	bz, err := sig.Marshal()
+	assert.Nil(t, err)
+
+	t.Logf("privKey %s", privKey)
+	t.Logf("sigStr %s", sig)
+	t.Logf("hexSigStr %s", hex.EncodeToString(bz))
+}
 
 func TestCmdSignTransactionHappyPath(t *testing.T) {
 	tx := &bnsd.Tx{
