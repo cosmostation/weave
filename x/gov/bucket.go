@@ -7,6 +7,8 @@ import (
 	"github.com/iov-one/weave/orm"
 )
 
+const electionRuleSequence = "id"
+
 // ElectorateBucket is the persistent bucket for Electorate object.
 type ElectorateBucket struct {
 	orm.VersioningBucket
@@ -14,7 +16,7 @@ type ElectorateBucket struct {
 
 // NewElectorateBucket returns a bucket for managing electorate.
 func NewElectorateBucket() *ElectorateBucket {
-	b := migration.NewBucket(packageName, "electorate", orm.NewSimpleObj(nil, &Electorate{})).
+	b := migration.NewBucket(packageName, "electorate", &Electorate{}).
 		WithMultiKeyIndex("elector", electorIndexer, false)
 	return &ElectorateBucket{
 		VersioningBucket: orm.WithVersioning(orm.WithSeqIDGenerator(b, "id")),
@@ -48,10 +50,15 @@ type ElectionRulesBucket struct {
 
 // NewElectionRulesBucket returns a bucket for managing election rules.
 func NewElectionRulesBucket() *ElectionRulesBucket {
-	b := migration.NewBucket(packageName, "electnrule", orm.NewSimpleObj(nil, &ElectionRule{}))
+	b := migration.NewBucket(packageName, "electnrule", &ElectionRule{})
 	return &ElectionRulesBucket{
-		VersioningBucket: orm.WithVersioning(orm.WithSeqIDGenerator(b, "id")),
+		VersioningBucket: orm.WithVersioning(orm.WithSeqIDGenerator(b, electionRuleSequence)),
 	}
+}
+
+func (b *ElectionRulesBucket) NextID(db weave.KVStore) ([]byte, error) {
+	rulesBucketSeq := b.Sequence(electionRuleSequence)
+	return rulesBucketSeq.NextVal(db)
 }
 
 func asElectionRule(obj orm.Object) (*ElectionRule, error) {
@@ -74,7 +81,7 @@ const (
 
 // NewProposalBucket returns a bucket for managing electorate.
 func NewProposalBucket() *ProposalBucket {
-	b := migration.NewBucket(packageName, "proposal", orm.NewSimpleObj(nil, &Proposal{})).
+	b := migration.NewBucket(packageName, "proposal", &Proposal{}).
 		WithIndex(indexNameAuthor, authorIndexer, false).
 		WithIndex(indexNameElectorateID, proposalElectorateIDIndexer, false)
 	return &ProposalBucket{
@@ -136,7 +143,7 @@ type ResolutionBucket struct {
 }
 
 func NewResolutionBucket() *ResolutionBucket {
-	b := migration.NewBucket(packageName, "resolution", orm.NewSimpleObj(nil, &Resolution{})).
+	b := migration.NewBucket(packageName, "resolution", &Resolution{}).
 		WithIndex(indexNameElectorate, electorateIDIndexer, false)
 	return &ResolutionBucket{
 		IDGenBucket: orm.WithSeqIDGenerator(b, "id"),
@@ -172,8 +179,8 @@ func asResolution(obj orm.Object) (*Resolution, error) {
 }
 
 const (
-	indexNameProposal = "proposal"
-	indexNameElector  = "elector"
+	indexNameProposal = "proposals"
+	indexNameElector  = "electors"
 )
 
 // VoteBucket is the persistence bucket for votes.
@@ -183,7 +190,7 @@ type VoteBucket struct {
 
 // NewVoteBucket returns a bucket for managing electorate.
 func NewVoteBucket() *VoteBucket {
-	b := migration.NewBucket(packageName, "vote", orm.NewSimpleObj(nil, &Vote{})).
+	b := migration.NewBucket(packageName, "vote", &Vote{}).
 		WithIndex(indexNameProposal, indexProposal, false).
 		WithIndex(indexNameElector, indexElector, false)
 	return &VoteBucket{

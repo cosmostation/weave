@@ -29,14 +29,14 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 // PaymentChannel holds the state of a payment channel during its lifetime.
 type PaymentChannel struct {
 	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Sender is the source that the founds are allocated from.
-	Src github_com_iov_one_weave.Address `protobuf:"bytes,2,opt,name=src,proto3,casttype=github.com/iov-one/weave.Address" json:"src,omitempty"`
-	// Sender public key is a key that must be used to verify signature of
-	// transfer message. Sender creates signed transfer messages and gives them
-	// to the recipient. Signature prevents from altering transfer message.
-	SenderPubkey *crypto.PublicKey `protobuf:"bytes,3,opt,name=sender_pubkey,json=senderPubkey,proto3" json:"sender_pubkey,omitempty"`
-	// Recipient is the party that receives payments through this channel
-	Recipient github_com_iov_one_weave.Address `protobuf:"bytes,4,opt,name=recipient,proto3,casttype=github.com/iov-one/weave.Address" json:"recipient,omitempty"`
+	// Source is the source that the founds are allocated from.
+	Source github_com_iov_one_weave.Address `protobuf:"bytes,2,opt,name=source,proto3,casttype=github.com/iov-one/weave.Address" json:"source,omitempty"`
+	// Source public key is a key that must be used to verify signature of
+	// transfer message. Source creates signed transfer messages and gives them
+	// to the destination. Signature prevents from altering transfer message.
+	SourcePubkey *crypto.PublicKey `protobuf:"bytes,3,opt,name=source_pubkey,json=sourcePubkey,proto3" json:"source_pubkey,omitempty"`
+	// Destination is the party that receives payments through this channel
+	Destination github_com_iov_one_weave.Address `protobuf:"bytes,4,opt,name=destination,proto3,casttype=github.com/iov-one/weave.Address" json:"destination,omitempty"`
 	// Total represents a maximum value that can be transferred via this
 	// payment channel.
 	Total *coin.Coin `protobuf:"bytes,5,opt,name=total,proto3" json:"total,omitempty"`
@@ -52,6 +52,8 @@ type PaymentChannel struct {
 	// Transferred represents total amount that was transferred using allocated
 	// (total) value. Transferred must never exceed total value.
 	Transferred *coin.Coin `protobuf:"bytes,8,opt,name=transferred,proto3" json:"transferred,omitempty"`
+	// Address of this entity. Set during creation and does not change.
+	Address github_com_iov_one_weave.Address `protobuf:"bytes,9,opt,name=address,proto3,casttype=github.com/iov-one/weave.Address" json:"address,omitempty"`
 }
 
 func (m *PaymentChannel) Reset()         { *m = PaymentChannel{} }
@@ -94,23 +96,23 @@ func (m *PaymentChannel) GetMetadata() *weave.Metadata {
 	return nil
 }
 
-func (m *PaymentChannel) GetSrc() github_com_iov_one_weave.Address {
+func (m *PaymentChannel) GetSource() github_com_iov_one_weave.Address {
 	if m != nil {
-		return m.Src
+		return m.Source
 	}
 	return nil
 }
 
-func (m *PaymentChannel) GetSenderPubkey() *crypto.PublicKey {
+func (m *PaymentChannel) GetSourcePubkey() *crypto.PublicKey {
 	if m != nil {
-		return m.SenderPubkey
+		return m.SourcePubkey
 	}
 	return nil
 }
 
-func (m *PaymentChannel) GetRecipient() github_com_iov_one_weave.Address {
+func (m *PaymentChannel) GetDestination() github_com_iov_one_weave.Address {
 	if m != nil {
-		return m.Recipient
+		return m.Destination
 	}
 	return nil
 }
@@ -143,19 +145,26 @@ func (m *PaymentChannel) GetTransferred() *coin.Coin {
 	return nil
 }
 
+func (m *PaymentChannel) GetAddress() github_com_iov_one_weave.Address {
+	if m != nil {
+		return m.Address
+	}
+	return nil
+}
+
 // CreateMsg creates a new payment channel that can be used to
 // transfer value between two parties.
 //
-// Total amount will be taken from the senders account and allocated for user
+// Total amount will be taken from the sources account and allocated for user
 // in the transactions done via created payment channel.
 type CreateMsg struct {
 	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Sender address (weave.Address).
-	Src github_com_iov_one_weave.Address `protobuf:"bytes,2,opt,name=src,proto3,casttype=github.com/iov-one/weave.Address" json:"src,omitempty"`
-	// Sender public key is for validating transfer message signature.
-	SenderPubkey *crypto.PublicKey `protobuf:"bytes,3,opt,name=sender_pubkey,json=senderPubkey,proto3" json:"sender_pubkey,omitempty"`
-	// Recipient address  (weave.Address).
-	Recipient github_com_iov_one_weave.Address `protobuf:"bytes,4,opt,name=recipient,proto3,casttype=github.com/iov-one/weave.Address" json:"recipient,omitempty"`
+	// Source address (weave.Address).
+	Source github_com_iov_one_weave.Address `protobuf:"bytes,2,opt,name=source,proto3,casttype=github.com/iov-one/weave.Address" json:"source,omitempty"`
+	// Source public key is for validating transfer message signature.
+	SourcePubkey *crypto.PublicKey `protobuf:"bytes,3,opt,name=source_pubkey,json=sourcePubkey,proto3" json:"source_pubkey,omitempty"`
+	// Destination address  (weave.Address).
+	Destination github_com_iov_one_weave.Address `protobuf:"bytes,4,opt,name=destination,proto3,casttype=github.com/iov-one/weave.Address" json:"destination,omitempty"`
 	// Maximum amount that can be transferred via this channel.
 	Total *coin.Coin `protobuf:"bytes,5,opt,name=total,proto3" json:"total,omitempty"`
 	// If reached, channel can be closed by anyone.
@@ -204,23 +213,23 @@ func (m *CreateMsg) GetMetadata() *weave.Metadata {
 	return nil
 }
 
-func (m *CreateMsg) GetSrc() github_com_iov_one_weave.Address {
+func (m *CreateMsg) GetSource() github_com_iov_one_weave.Address {
 	if m != nil {
-		return m.Src
+		return m.Source
 	}
 	return nil
 }
 
-func (m *CreateMsg) GetSenderPubkey() *crypto.PublicKey {
+func (m *CreateMsg) GetSourcePubkey() *crypto.PublicKey {
 	if m != nil {
-		return m.SenderPubkey
+		return m.SourcePubkey
 	}
 	return nil
 }
 
-func (m *CreateMsg) GetRecipient() github_com_iov_one_weave.Address {
+func (m *CreateMsg) GetDestination() github_com_iov_one_weave.Address {
 	if m != nil {
-		return m.Recipient
+		return m.Destination
 	}
 	return nil
 }
@@ -246,8 +255,8 @@ func (m *CreateMsg) GetMemo() string {
 	return ""
 }
 
-// Payment is created by the sender. Sender should give the message to the
-// recipient, so that it can be redeemed at any time.
+// Payment is created by the source. Source should give the message to the
+// destination, so that it can be redeemed at any time.
 //
 // Each Payment should be created with amount greater than the previous one.
 type Payment struct {
@@ -320,7 +329,7 @@ func (m *Payment) GetMemo() string {
 }
 
 // TransferMsg binds Payment with a signature created using
-// senders private key.
+// sources private key.
 // Signature is there to ensure that payment message was not altered.
 type TransferMsg struct {
 	Metadata  *weave.Metadata   `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
@@ -383,11 +392,11 @@ func (m *TransferMsg) GetSignature() *crypto.Signature {
 }
 
 // CloseMsg close a payment channel and release remaining founds
-// by sending them back to the sender account.
+// by sending them back to the source account.
 //
-// Recipient account can close channel at any moment.
+// Destination account can close channel at any moment.
 //
-// Sender can close channel only if the timeout was reached.
+// Source can close channel only if the timeout was reached.
 type CloseMsg struct {
 	Metadata  *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	ChannelID []byte          `protobuf:"bytes,2,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
@@ -460,40 +469,41 @@ func init() {
 func init() { proto.RegisterFile("x/paychan/codec.proto", fileDescriptor_daf7b5492d84b22a) }
 
 var fileDescriptor_daf7b5492d84b22a = []byte{
-	// 530 bytes of a gzipped FileDescriptorProto
+	// 546 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x54, 0xc1, 0x6e, 0xd3, 0x40,
-	0x10, 0xad, 0x9b, 0x34, 0x8e, 0xd7, 0x2d, 0x94, 0x05, 0x24, 0x2b, 0x07, 0xc7, 0x44, 0x80, 0x22,
-	0x28, 0xb6, 0x54, 0xa4, 0x5e, 0x11, 0x49, 0x2f, 0x11, 0xaa, 0x14, 0x99, 0x72, 0xae, 0x36, 0xbb,
-	0x43, 0xb2, 0x22, 0xde, 0x8d, 0xd6, 0xeb, 0x52, 0xff, 0x05, 0x27, 0xf8, 0x25, 0x8e, 0x3d, 0x72,
-	0x8a, 0x50, 0xf2, 0x17, 0x3d, 0x21, 0xdb, 0x9b, 0x26, 0x05, 0x71, 0xc8, 0x81, 0x1b, 0xb7, 0xd5,
-	0x9b, 0x37, 0x7a, 0x33, 0x6f, 0x66, 0x07, 0x3d, 0xbe, 0x8a, 0x66, 0x24, 0xa7, 0x13, 0x22, 0x22,
-	0x2a, 0x19, 0xd0, 0x70, 0xa6, 0xa4, 0x96, 0xd8, 0x36, 0x60, 0xcb, 0xdd, 0x40, 0x5b, 0x87, 0x54,
-	0xf2, 0x3b, 0xbc, 0xd6, 0x43, 0xaa, 0xf2, 0x99, 0x96, 0x51, 0x22, 0x19, 0x4c, 0x53, 0x03, 0x3e,
-	0x1a, 0xcb, 0xb1, 0x2c, 0x9f, 0x51, 0xf1, 0xaa, 0xd0, 0xce, 0xd7, 0x1a, 0xba, 0x37, 0x24, 0x79,
-	0x02, 0x42, 0xf7, 0x27, 0x44, 0x08, 0x98, 0xe2, 0x97, 0xa8, 0x99, 0x80, 0x26, 0x8c, 0x68, 0xe2,
-	0x59, 0x81, 0xd5, 0x75, 0x8f, 0xef, 0x87, 0x9f, 0x81, 0x5c, 0x42, 0x78, 0x66, 0xe0, 0xf8, 0x96,
-	0x80, 0x4f, 0x50, 0x2d, 0x55, 0xd4, 0xdb, 0x0d, 0xac, 0xee, 0x7e, 0xef, 0xe9, 0xcd, 0xbc, 0x1d,
-	0x8c, 0xb9, 0x9e, 0x64, 0xa3, 0x90, 0xca, 0x24, 0xe2, 0xf2, 0xf2, 0x95, 0x14, 0x10, 0x55, 0xd9,
-	0x6f, 0x19, 0x53, 0x90, 0xa6, 0x71, 0x91, 0x80, 0x4f, 0xd0, 0x41, 0x0a, 0x82, 0x81, 0xba, 0x98,
-	0x65, 0xa3, 0x4f, 0x90, 0x7b, 0xb5, 0x52, 0xe9, 0x41, 0x58, 0x95, 0x1e, 0x0e, 0xb3, 0xd1, 0x94,
-	0xd3, 0x77, 0x90, 0xc7, 0xfb, 0x15, 0x6f, 0x58, 0xd2, 0x70, 0x0f, 0x39, 0x0a, 0x28, 0x9f, 0x71,
-	0x10, 0xda, 0xab, 0x6f, 0xa1, 0xba, 0x4e, 0xc3, 0x01, 0xda, 0xd3, 0x52, 0x93, 0xa9, 0xb7, 0x57,
-	0x6a, 0xa2, 0xb0, 0x30, 0x30, 0xec, 0x4b, 0x2e, 0xe2, 0x2a, 0x80, 0xdf, 0x20, 0x5b, 0xf3, 0x04,
-	0x64, 0xa6, 0xbd, 0x46, 0x60, 0x75, 0x6b, 0xbd, 0x67, 0x37, 0xf3, 0xf6, 0x93, 0xbf, 0x6a, 0x7c,
-	0x10, 0xfc, 0xea, 0x9c, 0x27, 0x10, 0xaf, 0xb2, 0x30, 0x46, 0xf5, 0x04, 0x12, 0xe9, 0xd9, 0x81,
-	0xd5, 0x75, 0xe2, 0xf2, 0x8d, 0x8f, 0x90, 0xab, 0x15, 0x11, 0xe9, 0x47, 0x50, 0x0a, 0x98, 0xd7,
-	0xfc, 0x43, 0x7c, 0x33, 0xdc, 0x59, 0xee, 0x22, 0xa7, 0xaf, 0x80, 0x68, 0x38, 0x4b, 0xc7, 0xff,
-	0x67, 0xf2, 0x6f, 0x66, 0xd2, 0xf9, 0x66, 0x21, 0xdb, 0xac, 0x3f, 0x7e, 0x8e, 0x9a, 0x74, 0x42,
-	0xb8, 0xb8, 0xe0, 0xac, 0xf4, 0xd8, 0xe9, 0xb9, 0x8b, 0x79, 0xdb, 0xee, 0x17, 0xd8, 0xe0, 0x34,
-	0xb6, 0xcb, 0xe0, 0x80, 0xe1, 0x23, 0x84, 0x68, 0xf5, 0x55, 0x0a, 0x66, 0xe5, 0xf2, 0xc1, 0x62,
-	0xde, 0x76, 0xcc, 0x07, 0x1a, 0x9c, 0xc6, 0x8e, 0x21, 0x0c, 0x18, 0xee, 0xa0, 0x06, 0x49, 0x64,
-	0x26, 0xb4, 0x71, 0x73, 0xb3, 0x33, 0x13, 0xb9, 0xad, 0xac, 0x7e, 0xb7, 0x32, 0xf7, 0xdc, 0xec,
-	0xc3, 0xd6, 0x1b, 0xf0, 0x02, 0x15, 0xa7, 0xa2, 0xe8, 0xaa, 0xac, 0xcf, 0x3d, 0x3e, 0x0c, 0xcd,
-	0xe9, 0x08, 0x4d, 0xb7, 0xf1, 0x8a, 0x80, 0x23, 0xe4, 0xa4, 0x7c, 0x2c, 0x88, 0xce, 0x14, 0xfc,
-	0x3e, 0xf1, 0xf7, 0xab, 0x40, 0xbc, 0xe6, 0x74, 0x72, 0xd4, 0xec, 0x4f, 0x65, 0xba, 0xfd, 0x5e,
-	0x6e, 0x67, 0xdc, 0xca, 0x94, 0xda, 0xda, 0x94, 0x9e, 0xf7, 0x7d, 0xe1, 0x5b, 0xd7, 0x0b, 0xdf,
-	0xfa, 0xb9, 0xf0, 0xad, 0x2f, 0x4b, 0x7f, 0xe7, 0x7a, 0xe9, 0xef, 0xfc, 0x58, 0xfa, 0x3b, 0xa3,
-	0x46, 0x79, 0xce, 0x5e, 0xff, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x03, 0x18, 0xe1, 0x92, 0x3a, 0x05,
+	0x10, 0x8d, 0x9b, 0x34, 0x8e, 0xc7, 0x2d, 0x94, 0x05, 0x24, 0x2b, 0x07, 0xc7, 0x44, 0x80, 0x22,
+	0x28, 0xb6, 0x54, 0x24, 0x4e, 0x08, 0x44, 0x52, 0x21, 0x45, 0xa8, 0x52, 0x64, 0xca, 0xb9, 0xda,
+	0xd8, 0x43, 0xb2, 0x22, 0xde, 0x8d, 0xec, 0x75, 0xa9, 0xff, 0x82, 0x1b, 0xbf, 0xc4, 0xb1, 0x47,
+	0x4e, 0x51, 0x95, 0x9c, 0xf9, 0x81, 0x9e, 0x90, 0xed, 0x4d, 0x9b, 0x82, 0x38, 0xf8, 0xc0, 0xad,
+	0xb7, 0xd1, 0x9b, 0x37, 0x3b, 0x33, 0x6f, 0x67, 0x06, 0x1e, 0x9e, 0x79, 0x73, 0x9a, 0x05, 0x53,
+	0xca, 0xbd, 0x40, 0x84, 0x18, 0xb8, 0xf3, 0x58, 0x48, 0x41, 0x74, 0x05, 0xb6, 0xcd, 0x0d, 0xb4,
+	0xbd, 0x17, 0x08, 0x76, 0x83, 0xd7, 0xbe, 0x1f, 0xc4, 0xd9, 0x5c, 0x0a, 0x2f, 0x12, 0x21, 0xce,
+	0x12, 0x05, 0x3e, 0x98, 0x88, 0x89, 0x28, 0x4c, 0x2f, 0xb7, 0x4a, 0xb4, 0x7b, 0x51, 0x87, 0x3b,
+	0x23, 0x9a, 0x45, 0xc8, 0xe5, 0x60, 0x4a, 0x39, 0xc7, 0x19, 0x79, 0x0e, 0xad, 0x08, 0x25, 0x0d,
+	0xa9, 0xa4, 0x96, 0xe6, 0x68, 0x3d, 0xf3, 0xe0, 0xae, 0xfb, 0x15, 0xe9, 0x29, 0xba, 0x47, 0x0a,
+	0xf6, 0xaf, 0x08, 0xe4, 0x35, 0x34, 0x13, 0x91, 0xc6, 0x01, 0x5a, 0x5b, 0x8e, 0xd6, 0xdb, 0xe9,
+	0x3f, 0xbe, 0x5c, 0x74, 0x9c, 0x09, 0x93, 0xd3, 0x74, 0xec, 0x06, 0x22, 0xf2, 0x98, 0x38, 0x7d,
+	0x21, 0x38, 0x7a, 0xe5, 0x03, 0xef, 0xc2, 0x30, 0xc6, 0x24, 0xf1, 0x55, 0x0c, 0x79, 0x05, 0xbb,
+	0xa5, 0x75, 0x32, 0x4f, 0xc7, 0x5f, 0x30, 0xb3, 0xea, 0x45, 0xbe, 0x7b, 0x6e, 0xd9, 0x80, 0x3b,
+	0x4a, 0xc7, 0x33, 0x16, 0x7c, 0xc0, 0xcc, 0xdf, 0x29, 0x79, 0xa3, 0x82, 0x46, 0xde, 0x83, 0x19,
+	0x62, 0x22, 0x19, 0xa7, 0x92, 0x09, 0x6e, 0x35, 0x2a, 0xa4, 0xde, 0x0c, 0x24, 0x0e, 0x6c, 0x4b,
+	0x21, 0xe9, 0xcc, 0xda, 0x2e, 0xf2, 0x82, 0x9b, 0x4b, 0xe9, 0x0e, 0x04, 0xe3, 0x7e, 0xe9, 0x20,
+	0x6f, 0x41, 0x97, 0x2c, 0x42, 0x91, 0x4a, 0xab, 0xe9, 0x68, 0xbd, 0x7a, 0xff, 0xc9, 0xe5, 0xa2,
+	0xf3, 0xe8, 0x9f, 0x59, 0x3e, 0x71, 0x76, 0x76, 0xcc, 0x22, 0xf4, 0xd7, 0x51, 0x84, 0x40, 0x23,
+	0xc2, 0x48, 0x58, 0xba, 0xa3, 0xf5, 0x0c, 0xbf, 0xb0, 0xc9, 0x3e, 0x98, 0x32, 0xa6, 0x3c, 0xf9,
+	0x8c, 0x71, 0x8c, 0xa1, 0xd5, 0xfa, 0x2b, 0xf9, 0xa6, 0x9b, 0xbc, 0x01, 0x9d, 0x96, 0xc5, 0x5b,
+	0x46, 0x85, 0x46, 0xd7, 0x41, 0xdd, 0x5f, 0x5b, 0x60, 0x0c, 0x62, 0xa4, 0x12, 0x8f, 0x92, 0xc9,
+	0xed, 0xef, 0xfe, 0xef, 0xdf, 0xed, 0x7e, 0xd7, 0x40, 0x57, 0x2b, 0x45, 0x9e, 0x42, 0x2b, 0x98,
+	0x52, 0xc6, 0x4f, 0x58, 0x58, 0xa8, 0x6d, 0xf4, 0xcd, 0xe5, 0xa2, 0xa3, 0x0f, 0x72, 0x6c, 0x78,
+	0xe8, 0xeb, 0x85, 0x73, 0x18, 0x92, 0x7d, 0x80, 0xa0, 0x5c, 0xbf, 0x9c, 0x59, 0x8a, 0xbd, 0xbb,
+	0x5c, 0x74, 0x0c, 0xb5, 0x94, 0xc3, 0x43, 0xdf, 0x50, 0x84, 0x61, 0x48, 0xba, 0xd0, 0xa4, 0x91,
+	0x48, 0xb9, 0x54, 0x8a, 0x6e, 0x76, 0xa6, 0x3c, 0x57, 0x95, 0x35, 0x6e, 0x56, 0x66, 0x1e, 0xab,
+	0xc9, 0xaa, 0x3c, 0x0b, 0xcf, 0x20, 0x3f, 0x3f, 0x79, 0x57, 0x45, 0x7d, 0xe6, 0xc1, 0x9e, 0xab,
+	0xce, 0x91, 0xab, 0xba, 0xf5, 0xd7, 0x04, 0xe2, 0x81, 0x91, 0xb0, 0x09, 0xa7, 0x32, 0x8d, 0xf1,
+	0xcf, 0x5f, 0xff, 0xb8, 0x76, 0xf8, 0xd7, 0x9c, 0x6e, 0x06, 0xad, 0xc1, 0x4c, 0x24, 0xd5, 0x27,
+	0xb4, 0x9a, 0x70, 0x6b, 0x51, 0xea, 0xd7, 0xa2, 0xf4, 0xad, 0x1f, 0x4b, 0x5b, 0x3b, 0x5f, 0xda,
+	0xda, 0xc5, 0xd2, 0xd6, 0xbe, 0xad, 0xec, 0xda, 0xf9, 0xca, 0xae, 0xfd, 0x5c, 0xd9, 0xb5, 0x71,
+	0xb3, 0x38, 0x91, 0x2f, 0x7f, 0x07, 0x00, 0x00, 0xff, 0xff, 0x43, 0xfb, 0x17, 0x2b, 0x8e, 0x05,
 	0x00, 0x00,
 }
 
@@ -522,27 +532,27 @@ func (m *PaymentChannel) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n1
 	}
-	if len(m.Src) > 0 {
+	if len(m.Source) > 0 {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(len(m.Src)))
-		i += copy(dAtA[i:], m.Src)
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Source)))
+		i += copy(dAtA[i:], m.Source)
 	}
-	if m.SenderPubkey != nil {
+	if m.SourcePubkey != nil {
 		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(m.SenderPubkey.Size()))
-		n2, err := m.SenderPubkey.MarshalTo(dAtA[i:])
+		i = encodeVarintCodec(dAtA, i, uint64(m.SourcePubkey.Size()))
+		n2, err := m.SourcePubkey.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n2
 	}
-	if len(m.Recipient) > 0 {
+	if len(m.Destination) > 0 {
 		dAtA[i] = 0x22
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(len(m.Recipient)))
-		i += copy(dAtA[i:], m.Recipient)
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Destination)))
+		i += copy(dAtA[i:], m.Destination)
 	}
 	if m.Total != nil {
 		dAtA[i] = 0x2a
@@ -575,6 +585,12 @@ func (m *PaymentChannel) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n4
 	}
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x4a
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
+	}
 	return i, nil
 }
 
@@ -603,27 +619,27 @@ func (m *CreateMsg) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n5
 	}
-	if len(m.Src) > 0 {
+	if len(m.Source) > 0 {
 		dAtA[i] = 0x12
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(len(m.Src)))
-		i += copy(dAtA[i:], m.Src)
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Source)))
+		i += copy(dAtA[i:], m.Source)
 	}
-	if m.SenderPubkey != nil {
+	if m.SourcePubkey != nil {
 		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(m.SenderPubkey.Size()))
-		n6, err := m.SenderPubkey.MarshalTo(dAtA[i:])
+		i = encodeVarintCodec(dAtA, i, uint64(m.SourcePubkey.Size()))
+		n6, err := m.SourcePubkey.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n6
 	}
-	if len(m.Recipient) > 0 {
+	if len(m.Destination) > 0 {
 		dAtA[i] = 0x22
 		i++
-		i = encodeVarintCodec(dAtA, i, uint64(len(m.Recipient)))
-		i += copy(dAtA[i:], m.Recipient)
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Destination)))
+		i += copy(dAtA[i:], m.Destination)
 	}
 	if m.Total != nil {
 		dAtA[i] = 0x2a
@@ -802,15 +818,15 @@ func (m *PaymentChannel) Size() (n int) {
 		l = m.Metadata.Size()
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	l = len(m.Src)
+	l = len(m.Source)
 	if l > 0 {
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	if m.SenderPubkey != nil {
-		l = m.SenderPubkey.Size()
+	if m.SourcePubkey != nil {
+		l = m.SourcePubkey.Size()
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	l = len(m.Recipient)
+	l = len(m.Destination)
 	if l > 0 {
 		n += 1 + l + sovCodec(uint64(l))
 	}
@@ -829,6 +845,10 @@ func (m *PaymentChannel) Size() (n int) {
 		l = m.Transferred.Size()
 		n += 1 + l + sovCodec(uint64(l))
 	}
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovCodec(uint64(l))
+	}
 	return n
 }
 
@@ -842,15 +862,15 @@ func (m *CreateMsg) Size() (n int) {
 		l = m.Metadata.Size()
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	l = len(m.Src)
+	l = len(m.Source)
 	if l > 0 {
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	if m.SenderPubkey != nil {
-		l = m.SenderPubkey.Size()
+	if m.SourcePubkey != nil {
+		l = m.SourcePubkey.Size()
 		n += 1 + l + sovCodec(uint64(l))
 	}
-	l = len(m.Recipient)
+	l = len(m.Destination)
 	if l > 0 {
 		n += 1 + l + sovCodec(uint64(l))
 	}
@@ -1015,7 +1035,7 @@ func (m *PaymentChannel) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Src", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1042,14 +1062,14 @@ func (m *PaymentChannel) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Src = append(m.Src[:0], dAtA[iNdEx:postIndex]...)
-			if m.Src == nil {
-				m.Src = []byte{}
+			m.Source = append(m.Source[:0], dAtA[iNdEx:postIndex]...)
+			if m.Source == nil {
+				m.Source = []byte{}
 			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SenderPubkey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SourcePubkey", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1076,16 +1096,16 @@ func (m *PaymentChannel) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.SenderPubkey == nil {
-				m.SenderPubkey = &crypto.PublicKey{}
+			if m.SourcePubkey == nil {
+				m.SourcePubkey = &crypto.PublicKey{}
 			}
-			if err := m.SenderPubkey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.SourcePubkey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Recipient", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Destination", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1112,9 +1132,9 @@ func (m *PaymentChannel) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Recipient = append(m.Recipient[:0], dAtA[iNdEx:postIndex]...)
-			if m.Recipient == nil {
-				m.Recipient = []byte{}
+			m.Destination = append(m.Destination[:0], dAtA[iNdEx:postIndex]...)
+			if m.Destination == nil {
+				m.Destination = []byte{}
 			}
 			iNdEx = postIndex
 		case 5:
@@ -1240,6 +1260,40 @@ func (m *PaymentChannel) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = append(m.Address[:0], dAtA[iNdEx:postIndex]...)
+			if m.Address == nil {
+				m.Address = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCodec(dAtA[iNdEx:])
@@ -1331,7 +1385,7 @@ func (m *CreateMsg) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Src", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1358,14 +1412,14 @@ func (m *CreateMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Src = append(m.Src[:0], dAtA[iNdEx:postIndex]...)
-			if m.Src == nil {
-				m.Src = []byte{}
+			m.Source = append(m.Source[:0], dAtA[iNdEx:postIndex]...)
+			if m.Source == nil {
+				m.Source = []byte{}
 			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SenderPubkey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SourcePubkey", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1392,16 +1446,16 @@ func (m *CreateMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.SenderPubkey == nil {
-				m.SenderPubkey = &crypto.PublicKey{}
+			if m.SourcePubkey == nil {
+				m.SourcePubkey = &crypto.PublicKey{}
 			}
-			if err := m.SenderPubkey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.SourcePubkey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Recipient", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Destination", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1428,9 +1482,9 @@ func (m *CreateMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Recipient = append(m.Recipient[:0], dAtA[iNdEx:postIndex]...)
-			if m.Recipient == nil {
-				m.Recipient = []byte{}
+			m.Destination = append(m.Destination[:0], dAtA[iNdEx:postIndex]...)
+			if m.Destination == nil {
+				m.Destination = []byte{}
 			}
 			iNdEx = postIndex
 		case 5:

@@ -194,6 +194,10 @@
             <ul>
               
                 <li>
+                  <a href="#bnsd.CronTask"><span class="badge">M</span>CronTask</a>
+                </li>
+              
+                <li>
                   <a href="#bnsd.ExecuteBatchMsg"><span class="badge">M</span>ExecuteBatchMsg</a>
                 </li>
               
@@ -237,6 +241,10 @@
                 </li>
               
                 <li>
+                  <a href="#username.Configuration"><span class="badge">M</span>Configuration</a>
+                </li>
+              
+                <li>
                   <a href="#username.RegisterTokenMsg"><span class="badge">M</span>RegisterTokenMsg</a>
                 </li>
               
@@ -246,6 +254,10 @@
               
                 <li>
                   <a href="#username.TransferTokenMsg"><span class="badge">M</span>TransferTokenMsg</a>
+                </li>
+              
+                <li>
+                  <a href="#username.UpdateConfigurationMsg"><span class="badge">M</span>UpdateConfigurationMsg</a>
                 </li>
               
               
@@ -379,7 +391,7 @@
                 </li>
               
                 <li>
-                  <a href="#aswap.ReturnSwapMsg"><span class="badge">M</span>ReturnSwapMsg</a>
+                  <a href="#aswap.ReturnMsg"><span class="badge">M</span>ReturnMsg</a>
                 </li>
               
                 <li>
@@ -440,6 +452,21 @@
         
           
           <li>
+            <a href="#x%2fcron%2fcodec.proto">x/cron/codec.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#cron.TaskResult"><span class="badge">M</span>TaskResult</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
             <a href="#x%2fcurrency%2fcodec.proto">x/currency/codec.proto</a>
             <ul>
               
@@ -467,11 +494,11 @@
                 </li>
               
                 <li>
-                  <a href="#distribution.DistributeMsg"><span class="badge">M</span>DistributeMsg</a>
+                  <a href="#distribution.Destination"><span class="badge">M</span>Destination</a>
                 </li>
               
                 <li>
-                  <a href="#distribution.Recipient"><span class="badge">M</span>Recipient</a>
+                  <a href="#distribution.DistributeMsg"><span class="badge">M</span>DistributeMsg</a>
                 </li>
               
                 <li>
@@ -627,7 +654,19 @@
             <ul>
               
                 <li>
+                  <a href="#msgfee.Configuration"><span class="badge">M</span>Configuration</a>
+                </li>
+              
+                <li>
                   <a href="#msgfee.MsgFee"><span class="badge">M</span>MsgFee</a>
+                </li>
+              
+                <li>
+                  <a href="#msgfee.SetMsgFeeMsg"><span class="badge">M</span>SetMsgFeeMsg</a>
+                </li>
+              
+                <li>
+                  <a href="#msgfee.UpdateConfigurationMsg"><span class="badge">M</span>UpdateConfigurationMsg</a>
                 </li>
               
               
@@ -785,6 +824,70 @@
       <p></p>
 
       
+        <h3 id="bnsd.CronTask">CronTask</h3>
+        <p>CronTask is a format used by the CronMarshaler to marshal and unmarshal cron</p><p>task.</p><p>When there is a gap in message sequence numbers - that most likely means some</p><p>old fields got deprecated. This is done to maintain binary compatibility.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>authenticators</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td>repeated</td>
+                  <td><p>Authenticators contains a list of conditions that authenticate execution
+of this task.
+This is one of the main differences between the CronTask and Tx entities.
+CronTask is created interanlly and does not have to be signed. Because we
+use the same handlers as for the Tx to process a cron task, we must
+provide authentication method. This attribute contains all authentication
+conditions required for execution, that will be inserted into the context. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>escrow_release_msg</td>
+                  <td><a href="#escrow.ReleaseMsg">escrow.ReleaseMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>escrow_return_msg</td>
+                  <td><a href="#escrow.ReturnMsg">escrow.ReturnMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>distribution_distribute_msg</td>
+                  <td><a href="#distribution.DistributeMsg">distribution.DistributeMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>aswap_release_msg</td>
+                  <td><a href="#aswap.ReleaseMsg">aswap.ReleaseMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>gov_tally_msg</td>
+                  <td><a href="#gov.TallyMsg">gov.TallyMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="bnsd.ExecuteBatchMsg">ExecuteBatchMsg</h3>
         <p>ExecuteBatchMsg encapsulates multiple messages to support batch transaction</p>
 
@@ -919,6 +1022,13 @@
                 <tr>
                   <td>distribution_reset_msg</td>
                   <td><a href="#distribution.ResetMsg">distribution.ResetMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>msgfee_set_msg_fee_msg</td>
+                  <td><a href="#msgfee.SetMsgFeeMsg">msgfee.SetMsgFeeMsg</a></td>
                   <td></td>
                   <td><p>upgrade schema is important enough, it should be a solo action
 aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p></td>
@@ -1061,6 +1171,13 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
                   <td><p> </p></td>
                 </tr>
               
+                <tr>
+                  <td>msgfee_set_msg_fee_msg</td>
+                  <td><a href="#msgfee.SetMsgFeeMsg">msgfee.SetMsgFeeMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
             </tbody>
           </table>
         
@@ -1196,6 +1313,13 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
                   <td><p> </p></td>
                 </tr>
               
+                <tr>
+                  <td>msgfee_set_msg_fee_msg</td>
+                  <td><a href="#msgfee.SetMsgFeeMsg">msgfee.SetMsgFeeMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
             </tbody>
           </table>
         
@@ -1230,7 +1354,9 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
                   <td>multisig</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td>repeated</td>
-                  <td><p>ID of a multisig contract. </p></td>
+                  <td><p>ID of a multisig contract.
+empty array results in multisig being ignored, basically the same behaviour
+as if it never got supplied. </p></td>
                 </tr>
               
                 <tr>
@@ -1368,7 +1494,7 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
               
                 <tr>
                   <td>aswap_return_msg</td>
-                  <td><a href="#aswap.ReturnSwapMsg">aswap.ReturnSwapMsg</a></td>
+                  <td><a href="#aswap.ReturnMsg">aswap.ReturnMsg</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -1395,22 +1521,23 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
                 </tr>
               
                 <tr>
-                  <td>gov_tally_msg</td>
-                  <td><a href="#gov.TallyMsg">gov.TallyMsg</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
                   <td>gov_update_electorate_msg</td>
                   <td><a href="#gov.UpdateElectorateMsg">gov.UpdateElectorateMsg</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Tally is executed via cron only.
+gov.TallyMsg gov_tally_msg = 76; </p></td>
                 </tr>
               
                 <tr>
                   <td>gov_update_election_rule_msg</td>
                   <td><a href="#gov.UpdateElectionRuleMsg">gov.UpdateElectionRuleMsg</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>msgfee_set_msg_fee_msg</td>
+                  <td><a href="#msgfee.SetMsgFeeMsg">msgfee.SetMsgFeeMsg</a></td>
                   <td></td>
                   <td><p>79 is reserved (see ProposalOptions: TextResolutionMsg) </p></td>
                 </tr>
@@ -1454,13 +1581,16 @@ aswap and gov don&#39;t make much sense as part of a batch (no vote buying) </p>
               
                 <tr>
                   <td>address</td>
-                  <td><a href="#bytes">bytes</a></td>
+                  <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p>An address on the specified blockchain network. Address is not a
 weave.Address as we cannot know what is the format of an address on the
 chain that this token instance links to. Because we do not know the rules
 to validate an address for any blockchain ID, this is an arbitrary bulk of
-data. </p></td>
+data.
+It is more convinient to always use encoded representation of each address
+and store it as a string. Using bytes while compact is not as comfortable
+to use. </p></td>
                 </tr>
               
             </tbody>
@@ -1499,6 +1629,54 @@ data. </p></td>
                   <td>repeated</td>
                   <td><p>New targets is a list of blockchain addresses that this token should point
 to after the change. Old list is overwritten with what is provided. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="username.Configuration">Configuration</h3>
+        <p>Configuration is a dynamic configuration used by this extension, managed by</p><p>the functionality provided by gconf package.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>owner</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Owner is present to implement gconf.OwnedConfig interface
+This defines the Address that is allowed to update the Configuration object and is
+needed to make use of gconf.NewUpdateConfigurationHandler </p></td>
+                </tr>
+              
+                <tr>
+                  <td>valid_username_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Valid username name defines a regular expression that every valid username
+part name must match (a username is &lt;name&gt;*&lt;label&gt;) </p></td>
+                </tr>
+              
+                <tr>
+                  <td>valid_username_label</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Valid username label defines a regular expression that every valid
+namespace label must match (a username is &lt;name&gt;*&lt;label&gt;) </p></td>
                 </tr>
               
             </tbody>
@@ -1612,6 +1790,36 @@ modify a username token. </p></td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p>Owner is a weave address that will owns this token after the change. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="username.UpdateConfigurationMsg">UpdateConfigurationMsg</h3>
+        <p>UpdateConfigurationMsg is used by the gconf extension to update the</p><p>configuration.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>patch</td>
+                  <td><a href="#username.Configuration">Configuration</a></td>
+                  <td></td>
+                  <td><p> </p></td>
                 </tr>
               
             </tbody>
@@ -2105,7 +2313,7 @@ For example, for extension `x/myext` package value is `myext` </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2119,7 +2327,7 @@ For example, for extension `x/myext` package value is `myext` </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2153,7 +2361,7 @@ For example, for extension `x/myext` package value is `myext` </p></td>
         
       
         <h3 id="aswap.ReleaseMsg">ReleaseMsg</h3>
-        <p>ReleaseMsg releases the tokens to the recipient.</p><p>This operation is authorized by preimage, which is sent raw and then hashed on the backend.</p>
+        <p>ReleaseMsg releases the tokens to the destination.</p><p>This operation is authorized by preimage, which is sent raw and then hashed on the backend.</p>
 
         
           <table class="field-table">
@@ -2190,8 +2398,8 @@ must be exactly 32 bytes long </p></td>
 
         
       
-        <h3 id="aswap.ReturnSwapMsg">ReturnSwapMsg</h3>
-        <p>ReturnSwapMsg releases the tokens to the src.</p><p>This operation only works if the Swap is expired.</p>
+        <h3 id="aswap.ReturnMsg">ReturnMsg</h3>
+        <p>ReturnMsg releases the tokens to the source.</p><p>This operation only works if the Swap is expired.</p>
 
         
           <table class="field-table">
@@ -2245,24 +2453,24 @@ must be exactly 32 bytes long </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>src is a sender address </p></td>
+                  <td><p>source is a sender address </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>recipient is an address of recipient </p></td>
+                  <td><p>destination is an address of destination </p></td>
                 </tr>
               
                 <tr>
                   <td>timeout</td>
                   <td><a href="#int64">int64</a></td>
                   <td></td>
-                  <td><p>If unreleased before timeout, swap will return coins to src.
+                  <td><p>If unreleased before timeout, swap will return coins to source.
 Timeout represents wall clock time as read from the block header. Timeout
 is represented using POSIX time format.
 Expiration time is inclusive meaning that the swap expires as soon as
@@ -2276,6 +2484,13 @@ expired: [timeout, infinity) </p></td>
                   <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p>max length 128 characters </p></td>
+                </tr>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
                 </tr>
               
             </tbody>
@@ -2429,14 +2644,14 @@ needed to make use of gconf.NewUpdateConfigurationHandler </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
               
                 <tr>
-                  <td>dest</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2521,6 +2736,72 @@ needed to make use of gconf.NewUpdateConfigurationHandler </p></td>
                   <td><a href="#cash.Configuration">Configuration</a></td>
                   <td></td>
                   <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="x/cron/codec.proto">x/cron/codec.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="cron.TaskResult">TaskResult</h3>
+        <p>TaskResult is a publicly available information about task execution result.</p><p>It is only created for those tasks that were executed.</p><p>Due to a bug in tendermint we must store this information ourselves instead</p><p>of relying on the usual search via tag.</p><p>https://github.com/tendermint/tendermint/issues/3665</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>successful</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td></td>
+                  <td><p>Successful is set to true if the task was successfully executed. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>info</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Info contains any additinal information that might be useful to lean more
+about the task execution. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>exec_time</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td></td>
+                  <td><p>Exec time hold the information of when the task was executed. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>exec_height</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td></td>
+                  <td><p>Exec height holds the block height value at the time the task was executed. </p></td>
                 </tr>
               
             </tbody>
@@ -2651,10 +2932,10 @@ While not enforced it is best to use a multisig contract here. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipients</td>
-                  <td><a href="#distribution.Recipient">Recipient</a></td>
+                  <td>destinations</td>
+                  <td><a href="#distribution.Destination">Destination</a></td>
                   <td>repeated</td>
-                  <td><p>Recipients holds any number of addresses that the collected revenue is
+                  <td><p>Destinations holds any number of addresses that the collected revenue is
 distributed to. Must be at least one. </p></td>
                 </tr>
               
@@ -2664,38 +2945,7 @@ distributed to. Must be at least one. </p></td>
 
         
       
-        <h3 id="distribution.DistributeMsg">DistributeMsg</h3>
-        <p>DistributeMsg is a request to distribute all funds collected within a single</p><p>revenue instance. Revenue is distributed between recipients. Request must be</p><p>signed using admin key.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>metadata</td>
-                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>revenue_id</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p>Revenue ID reference an ID of a revenue instance that the collected fees
-should be distributed between recipients. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-        
-
-        
-      
-        <h3 id="distribution.Recipient">Recipient</h3>
+        <h3 id="distribution.Destination">Destination</h3>
         <p></p>
 
         
@@ -2719,9 +2969,9 @@ of the validators. </p></td>
                   <td>weight</td>
                   <td><a href="#int32">int32</a></td>
                   <td></td>
-                  <td><p>Weight defines what part of the total revenue goes to this recipient.
-Each recipient receives part of the total revenue amount proportional to
-the weight. For example, if there are two recipients with weights 1 and 2
+                  <td><p>Weight defines what part of the total revenue goes to this destination.
+Each destination receives part of the total revenue amount proportional to
+the weight. For example, if there are two destinations with weights 1 and 2
 accordingly, distribution will be 1/3 to the first address and 2/3 to the
 second one. </p></td>
                 </tr>
@@ -2732,8 +2982,39 @@ second one. </p></td>
 
         
       
+        <h3 id="distribution.DistributeMsg">DistributeMsg</h3>
+        <p>DistributeMsg is a request to distribute all funds collected within a single</p><p>revenue instance. Revenue is distributed between destinations. Request must be</p><p>signed using admin key.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>revenue_id</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Revenue ID reference an ID of a revenue instance that the collected fees
+should be distributed between destinations. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="distribution.ResetMsg">ResetMsg</h3>
-        <p>ResetMsg change the configuration of a revenue instance.</p><p>To assure recipients that they will receive money, every revenue update is</p><p>forcing funds distribution. Before applying any change all funds stored by</p><p>the revenue account are distributed using old configuration. Only when the</p><p>collected revenue amount is equal to zero the change is applied.</p>
+        <p>ResetMsg change the configuration of a revenue instance.</p><p>To assure destinations that they will receive money, every revenue update is</p><p>forcing funds distribution. Before applying any change all funds stored by</p><p>the revenue account are distributed using old configuration. Only when the</p><p>collected revenue amount is equal to zero the change is applied.</p>
 
         
           <table class="field-table">
@@ -2757,10 +3038,10 @@ second one. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipients</td>
-                  <td><a href="#distribution.Recipient">Recipient</a></td>
+                  <td>destinations</td>
+                  <td><a href="#distribution.Destination">Destination</a></td>
                   <td>repeated</td>
-                  <td><p>Recipients holds any number of addresses that the collected revenue is
+                  <td><p>Destinations holds any number of addresses that the collected revenue is
 distributed to. Must be at least one. </p></td>
                 </tr>
               
@@ -2797,11 +3078,18 @@ While not enforced it is best to use a multisig contract here. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipients</td>
-                  <td><a href="#distribution.Recipient">Recipient</a></td>
+                  <td>destinations</td>
+                  <td><a href="#distribution.Destination">Destination</a></td>
                   <td>repeated</td>
-                  <td><p>Recipients holds any number of addresses that the collected revenue is
+                  <td><p>Destinations holds any number of addresses that the collected revenue is
 distributed to. Must be at least one. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
                 </tr>
               
             </tbody>
@@ -2825,7 +3113,7 @@ distributed to. Must be at least one. </p></td>
 
       
         <h3 id="escrow.CreateMsg">CreateMsg</h3>
-        <p>CreateMsg is a request to create an Escrow with some tokens.</p><p>If sender is not defined, it defaults to the first signer</p><p>The rest must be defined</p>
+        <p>CreateMsg is a request to create an Escrow with some tokens.</p><p>If source is not defined, it defaults to the first signer</p><p>The rest must be defined</p>
 
         
           <table class="field-table">
@@ -2842,7 +3130,7 @@ distributed to. Must be at least one. </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2856,7 +3144,7 @@ distributed to. Must be at least one. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2890,7 +3178,7 @@ distributed to. Must be at least one. </p></td>
         
       
         <h3 id="escrow.Escrow">Escrow</h3>
-        <p>Escrow holds some coins.</p><p>The arbiter or sender can release them to the recipient.</p><p>The recipient can return them to the sender.</p><p>Upon timeout, they will be returned to the sender.</p>
+        <p>Escrow holds some coins.</p><p>The arbiter or source can release them to the destination.</p><p>The destination can return them to the source.</p><p>Upon timeout, they will be returned to the source.</p>
 
         
           <table class="field-table">
@@ -2907,7 +3195,7 @@ distributed to. Must be at least one. </p></td>
                 </tr>
               
                 <tr>
-                  <td>sender</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2921,7 +3209,7 @@ distributed to. Must be at least one. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2931,7 +3219,7 @@ distributed to. Must be at least one. </p></td>
                   <td>timeout</td>
                   <td><a href="#int64">int64</a></td>
                   <td></td>
-                  <td><p>If unreleased before timeout, escrow will return to sender.
+                  <td><p>If unreleased before timeout, escrow will return to source.
 Timeout represents wall clock time as read from the block header. Timeout
 is represented using POSIX time format.
 Expiration time is inclusive meaning that the escrow expires as soon as
@@ -2947,6 +3235,13 @@ expired: [timeout, infinity) </p></td>
                   <td><p>max length 128 character </p></td>
                 </tr>
               
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
+                </tr>
+              
             </tbody>
           </table>
         
@@ -2954,7 +3249,7 @@ expired: [timeout, infinity) </p></td>
         
       
         <h3 id="escrow.ReleaseMsg">ReleaseMsg</h3>
-        <p>ReleaseMsg releases the content to the recipient.</p><p>Must be authorized by sender or arbiter.</p><p>If amount not provided, defaults to entire escrow,</p><p>May be a subset of the current balance.</p>
+        <p>ReleaseMsg releases the content to the destination.</p><p>Must be authorized by source or arbiter.</p><p>If amount not provided, defaults to entire escrow,</p><p>May be a subset of the current balance.</p>
 
         
           <table class="field-table">
@@ -2991,7 +3286,7 @@ expired: [timeout, infinity) </p></td>
         
       
         <h3 id="escrow.ReturnMsg">ReturnMsg</h3>
-        <p>ReturnMsg returns the content to the sender.</p><p>Must be authorized by the sender or an expired timeout</p>
+        <p>ReturnMsg returns the content to the source.</p><p>Must be authorized by the source or an expired timeout</p>
 
         
           <table class="field-table">
@@ -3021,7 +3316,7 @@ expired: [timeout, infinity) </p></td>
         
       
         <h3 id="escrow.UpdatePartiesMsg">UpdatePartiesMsg</h3>
-        <p>UpdatePartiesMsg changes any of the parties of the escrow:</p><p>sender, arbiter, recipient. This must be authorized by the current</p><p>holder of that position (eg. only sender can update sender).</p><p>Represents delegating responsibility</p>
+        <p>UpdatePartiesMsg changes any of the parties of the escrow:</p><p>source, arbiter, destination. This must be authorized by the current</p><p>holder of that position (eg. only source can update source).</p><p>Represents delegating responsibility</p>
 
         
           <table class="field-table">
@@ -3045,7 +3340,7 @@ expired: [timeout, infinity) </p></td>
                 </tr>
               
                 <tr>
-                  <td>sender</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -3059,7 +3354,7 @@ expired: [timeout, infinity) </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -3287,6 +3582,13 @@ This value requires any kind of votes and not only YES.
 
 The valid range for the threshold value is `0.5` to `1` (inclusive) which allows any value between half and all
 of the eligible voters. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
                 </tr>
               
             </tbody>
@@ -3523,6 +3825,14 @@ to be included in the election. </p></td>
                   <td><p>Result is the final result based on the votes and election rule. Initial value is NotRun. </p></td>
                 </tr>
               
+                <tr>
+                  <td>tally_task_id</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Tally task ID holds the ID of the asynchronous task that is scheduled to
+create the tally once the voting period is over. </p></td>
+                </tr>
+              
             </tbody>
           </table>
         
@@ -3702,6 +4012,19 @@ proposal this value must be exceeded.
 The formula is `(yes*denominator) &gt; (numerator*total_electors_weight)`.
 The valid range for the threshold value is `0.5` to `1` (inclusive) which allows any value between half and all
 of the eligible voters. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>quorum</td>
+                  <td><a href="#gov.Fraction">Fraction</a></td>
+                  <td></td>
+                  <td><p>The quorum fraction of eligible voters is based on the total electorate
+weight and defines a threshold of votes that must be exceeded before the
+acceptance threshold is applied. This value requires any kind of votes
+and not only YES.
+
+The valid range for the threshold value is `0.5` to `1` (inclusive) which
+allows any value between half and all of the eligible voters. </p></td>
                 </tr>
               
             </tbody>
@@ -4036,6 +4359,45 @@ is Withdrawn.</p></td>
       <p></p>
 
       
+        <h3 id="msgfee.Configuration">Configuration</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>owner</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Owner is present to implement gconf.OwnedConfig interface
+This defines the Address that is allowed to update the Configuration object and is
+needed to make use of gconf.NewUpdateConfigurationHandler </p></td>
+                </tr>
+              
+                <tr>
+                  <td>fee_admin</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>FeeAdmin is an address that is allowed to change the fee. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="msgfee.MsgFee">MsgFee</h3>
         <p>MsgFee represents a fee for a single message that must be paid in order for</p><p>the message to be processed.</p>
 
@@ -4063,6 +4425,73 @@ is Withdrawn.</p></td>
                 <tr>
                   <td>fee</td>
                   <td><a href="#coin.Coin">coin.Coin</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="msgfee.SetMsgFeeMsg">SetMsgFeeMsg</h3>
+        <p>SetMsgFeeMsg set given fee for a specified message path. This message sets a</p><p>new fee of overwrites an existing one. Fee must not be less than zero. Use</p><p>zero value coin to unset a fee.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>msg_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>fee</td>
+                  <td><a href="#coin.Coin">coin.Coin</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="msgfee.UpdateConfigurationMsg">UpdateConfigurationMsg</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#weave.Metadata">weave.Metadata</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>patch</td>
+                  <td><a href="#msgfee.Configuration">Configuration</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -4128,6 +4557,13 @@ computed as the sum of weights of all participating signatures. </p></td>
                   <td><p>Admin threshold defines the minimal weight value that must be provided
 from participants in order to administrate the contract. Weight is
 computed as the sum of weights of all participating signatures. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
                 </tr>
               
             </tbody>
@@ -4276,7 +4712,7 @@ computed as the sum of weights of all participating signatures. </p></td>
 
       
         <h3 id="paychan.CloseMsg">CloseMsg</h3>
-        <p>CloseMsg close a payment channel and release remaining founds</p><p>by sending them back to the sender account.</p><p>Recipient account can close channel at any moment.</p><p>Sender can close channel only if the timeout was reached.</p>
+        <p>CloseMsg close a payment channel and release remaining founds</p><p>by sending them back to the source account.</p><p>Destination account can close channel at any moment.</p><p>Source can close channel only if the timeout was reached.</p>
 
         
           <table class="field-table">
@@ -4313,7 +4749,7 @@ computed as the sum of weights of all participating signatures. </p></td>
         
       
         <h3 id="paychan.CreateMsg">CreateMsg</h3>
-        <p>CreateMsg creates a new payment channel that can be used to</p><p>transfer value between two parties.</p><p>Total amount will be taken from the senders account and allocated for user</p><p>in the transactions done via created payment channel.</p>
+        <p>CreateMsg creates a new payment channel that can be used to</p><p>transfer value between two parties.</p><p>Total amount will be taken from the sources account and allocated for user</p><p>in the transactions done via created payment channel.</p>
 
         
           <table class="field-table">
@@ -4330,24 +4766,24 @@ computed as the sum of weights of all participating signatures. </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>Sender address (weave.Address). </p></td>
+                  <td><p>Source address (weave.Address). </p></td>
                 </tr>
               
                 <tr>
-                  <td>sender_pubkey</td>
+                  <td>source_pubkey</td>
                   <td><a href="#crypto.PublicKey">crypto.PublicKey</a></td>
                   <td></td>
-                  <td><p>Sender public key is for validating transfer message signature. </p></td>
+                  <td><p>Source public key is for validating transfer message signature. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>Recipient address  (weave.Address). </p></td>
+                  <td><p>Destination address  (weave.Address). </p></td>
                 </tr>
               
                 <tr>
@@ -4378,7 +4814,7 @@ computed as the sum of weights of all participating signatures. </p></td>
         
       
         <h3 id="paychan.Payment">Payment</h3>
-        <p>Payment is created by the sender. Sender should give the message to the</p><p>recipient, so that it can be redeemed at any time.</p><p>Each Payment should be created with amount greater than the previous one.</p>
+        <p>Payment is created by the source. Source should give the message to the</p><p>destination, so that it can be redeemed at any time.</p><p>Each Payment should be created with amount greater than the previous one.</p>
 
         
           <table class="field-table">
@@ -4439,26 +4875,26 @@ computed as the sum of weights of all participating signatures. </p></td>
                 </tr>
               
                 <tr>
-                  <td>src</td>
+                  <td>source</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>Sender is the source that the founds are allocated from. </p></td>
+                  <td><p>Source is the source that the founds are allocated from. </p></td>
                 </tr>
               
                 <tr>
-                  <td>sender_pubkey</td>
+                  <td>source_pubkey</td>
                   <td><a href="#crypto.PublicKey">crypto.PublicKey</a></td>
                   <td></td>
-                  <td><p>Sender public key is a key that must be used to verify signature of
-transfer message. Sender creates signed transfer messages and gives them
-to the recipient. Signature prevents from altering transfer message. </p></td>
+                  <td><p>Source public key is a key that must be used to verify signature of
+transfer message. Source creates signed transfer messages and gives them
+to the destination. Signature prevents from altering transfer message. </p></td>
                 </tr>
               
                 <tr>
-                  <td>recipient</td>
+                  <td>destination</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p>Recipient is the party that receives payments through this channel </p></td>
+                  <td><p>Destination is the party that receives payments through this channel </p></td>
                 </tr>
               
                 <tr>
@@ -4496,6 +4932,13 @@ expired: [timeout, infinity) </p></td>
 (total) value. Transferred must never exceed total value. </p></td>
                 </tr>
               
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>Address of this entity. Set during creation and does not change. </p></td>
+                </tr>
+              
             </tbody>
           </table>
         
@@ -4503,7 +4946,7 @@ expired: [timeout, infinity) </p></td>
         
       
         <h3 id="paychan.TransferMsg">TransferMsg</h3>
-        <p>TransferMsg binds Payment with a signature created using</p><p>senders private key.</p><p>Signature is there to ensure that payment message was not altered.</p>
+        <p>TransferMsg binds Payment with a signature created using</p><p>sources private key.</p><p>Signature is there to ensure that payment message was not altered.</p>
 
         
           <table class="field-table">

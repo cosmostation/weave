@@ -17,6 +17,7 @@ import (
 	"github.com/iov-one/weave/x/distribution"
 	"github.com/iov-one/weave/x/escrow"
 	"github.com/iov-one/weave/x/gov"
+	"github.com/iov-one/weave/x/msgfee"
 	"github.com/iov-one/weave/x/multisig"
 	"github.com/iov-one/weave/x/validators"
 )
@@ -83,6 +84,10 @@ transaction (ie signatures) are being dropped.
 		option.Option = &bnsd.ProposalOptions_CurrencyCreateMsg{
 			CurrencyCreateMsg: msg,
 		}
+	case *msgfee.SetMsgFeeMsg:
+		option.Option = &bnsd.ProposalOptions_MsgfeeSetMsgFeeMsg{
+			MsgfeeSetMsgFeeMsg: msg,
+		}
 	case *bnsd.ExecuteBatchMsg:
 		msgs, err := msg.MsgList()
 		if err != nil {
@@ -91,6 +96,10 @@ transaction (ie signatures) are being dropped.
 		var messages []bnsd.ExecuteProposalBatchMsg_Union
 		for _, m := range msgs {
 			switch m := m.(type) {
+			case *msgfee.SetMsgFeeMsg:
+				option.Option = &bnsd.ProposalOptions_MsgfeeSetMsgFeeMsg{
+					MsgfeeSetMsgFeeMsg: m,
+				}
 			case *cash.SendMsg:
 				messages = append(messages, bnsd.ExecuteProposalBatchMsg_Union{
 					Sum: &bnsd.ExecuteProposalBatchMsg_Union_SendMsg{
@@ -345,34 +354,6 @@ Vote on a governance proposal.
 	return err
 }
 
-// cmdTally is the cli command to trigger the tally execution after the voting period had ended
-func cmdTally(input io.Reader, output io.Writer, args []string) error {
-	fl := flag.NewFlagSet("", flag.ExitOnError)
-	fl.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), `
-Tally triggers the tally execution after the voting period had ended.
-		`)
-		fl.PrintDefaults()
-	}
-	var (
-		id = flSeq(fl, "proposal-id", "", "The ID of the proposal for the tally to execute.")
-	)
-	fl.Parse(args)
-	if len(*id) == 0 {
-		flagDie("the proposal id  must not be empty")
-	}
-	govTx := &bnsd.Tx{
-		Sum: &bnsd.Tx_GovTallyMsg{
-			GovTallyMsg: &gov.TallyMsg{
-				Metadata:   &weave.Metadata{Schema: 1},
-				ProposalID: []byte(*id),
-			},
-		},
-	}
-	_, err := writeTx(output, govTx)
-	return err
-}
-
 func cmdTextResolution(input io.Reader, output io.Writer, args []string) error {
 	fl := flag.NewFlagSet("", flag.ExitOnError)
 	fl.Usage = func() {
@@ -485,6 +466,7 @@ Creates a new version for an existing election rule. The new version is used for
 		durationFl    = fl.Int("voting-period", 0, "Duration in seconds how long the voting period will take place")
 		numeratorFl   = fl.Int("threshold-numerator", 0, "The top number of the fraction.")
 		denominatorFl = fl.Uint("threshold-denominator", 0, "The bottom number of the fraction")
+		quorumFl      = flFraction(fl, "quorum", "", "New quorum fraction in format <numerator>/<denominator>. Zero quorum deletes the value.")
 	)
 	fl.Parse(args)
 	if len(*id) == 0 {
@@ -498,6 +480,13 @@ Creates a new version for an existing election rule. The new version is used for
 	if err := fraction.Validate(); err != nil {
 		flagDie("invalid voting period: %s", err)
 	}
+
+	var quorum *gov.Fraction
+	if frac := quorumFl.Fraction(); frac != nil {
+		// If fraction value was provided, set it.
+		quorum = frac
+	}
+
 	govTx := &bnsd.Tx{
 		Sum: &bnsd.Tx_GovUpdateElectionRuleMsg{
 			GovUpdateElectionRuleMsg: &gov.UpdateElectionRuleMsg{
@@ -505,6 +494,7 @@ Creates a new version for an existing election rule. The new version is used for
 				ElectionRuleID: []byte(*id),
 				VotingPeriod:   weave.AsUnixDuration(time.Duration(*durationFl) * time.Second),
 				Threshold:      fraction,
+				Quorum:         quorum,
 			},
 		},
 	}

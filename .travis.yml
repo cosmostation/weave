@@ -2,6 +2,8 @@ sudo: required
 
 language: go
 
+dist: xenial
+
 services:
 - docker
 
@@ -9,11 +11,14 @@ addons:
   apt:
     packages:
     - docker-ce
+    - apt-cacher-ng
 
 cache:
   directories:
     - $HOME/.cache/go-build
     - $HOME/gopath/pkg/mod
+    - $TRAVIS_BUILD_DIR/.gitian-builder-cache
+    - /var/cache/apt-cacher-ng
 
 os:
 - linux
@@ -31,6 +36,9 @@ env:
     - MAIN_GO_VERSION=1.12
     - GORACE="halt_on_error=1"
     - FORCE_TM_TEST=1
+    - VERSION=$(git describe --tags --abbrev=9 | sed 's/^v//')
+    - COMMIT=$(git log -1 --format='%H')
+    - IMAGE_NAME="iov1/bnsd:${BUILD_VERSION}"
 
 install:
 - go get -d github.com/tendermint/tendermint/... ;
@@ -40,22 +48,28 @@ install:
   cd -;
 
 script:
+- set -eo pipefail
 - make protolint;
 - make protodocs;
+- make install;
 - make all;
 - if [[ "$TRAVIS_GO_VERSION" == "$MAIN_GO_VERSION" ]]; then
      make cover;
      ./coverage/upload.sh;
    fi;
-- printenv | grep -Ev "PATH|path|GEM" > env.list
+- printenv TRAVIS_COMMIT_MESSAGE > commit.msg
+- unset TRAVIS_COMMIT_MESSAGE && printenv | grep -Ev "PATH|path|GEM" > env.list
+- export TRAVIS_COMMIT_MESSAGE=`cat commit.msg` && rm -rf commit.msg
 - docker run -it --rm --env-file env.list -v "$(pwd):/usr/src/app" iov1ops/danger:latest > danger.out; cat danger.out
 - if [[ "$TRAVIS_GO_VERSION" == "$MAIN_GO_VERSION" && "$TRAVIS_OS_NAME" == "linux" ]]; then
     release_latest=$( [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_TAG" == "" && "$TRAVIS_PULL_REQUEST_BRANCH" == "" ]] && echo "yes" || echo "no" );
     release_tag=$( [[ "$TRAVIS_TAG" != "" ]] && echo "yes" || echo "no" );
 
     if [[ $release_latest == "yes" || $release_tag == "yes" ]]; then
-      make dist;
-    fi
+      ./contrib/gitian-build.sh linux ;
+     tar -zxf $TRAVIS_BUILD_DIR/bns-build-linux/build/out/bnsd-${VERSION}-linux-amd64.tar.gz -C ${TRAVIS_BUILD_DIR} ;
+     docker build --pull  --file ${TRAVIS_BUILD_DIR}/cmd/bnsd/Dockerfile --tag ${IMAGE_NAME} . ;
+    fi;
 
     if [[ $release_latest == "yes" ]]; then
       docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
@@ -72,7 +86,6 @@ script:
     fi;
   fi;
 
-
 notifications:
   email: false
 
@@ -80,4 +93,19 @@ notifications:
 branches:
   only:
   - master
+  - /^v[0-9]+\.[0-9]+\.x$/
   - /^v[0-9]+\.[0-9]+\.[0-9]+$/
+
+deploy:
+  provider: releases
+  api_key:
+    ${GITHUB_API_KEY}
+  file:
+    - ${TRAVIS_BUILD_DIR}/bns-build-linux/build/out/bnsd-${VERSION}-linux-amd64.tar.gz
+    - ${TRAVIS_BUILD_DIR}/bns-build-linux/build/out/src/bnsd-${VERSION}.tar.gz
+    - ${TRAVIS_BUILD_DIR}/bns-build-linux/result/bns-linux-res.yml
+  skip_cleanup: true
+  on:
+    tags: true
+    condition: $TRAVIS_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$
+

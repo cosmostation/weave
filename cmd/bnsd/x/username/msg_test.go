@@ -18,36 +18,26 @@ func TestRegisterTokenMsgValidate(t *testing.T) {
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				Targets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("1234567890")},
+					{BlockchainID: "blobchain", Address: "1234567890"},
 				},
 			},
 			Want: nil,
 		},
-		"invalid username": {
-			Msg: &RegisterTokenMsg{
-				Metadata: &weave.Metadata{Schema: 1},
-				Username: "xxx",
-				Targets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("1234567890")},
-				},
-			},
-			Want: errors.ErrInput,
-		},
-		"missing target": {
+		"empty targets": {
 			Msg: &RegisterTokenMsg{
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				Targets:  nil,
 			},
-			Want: errors.ErrEmpty,
+			Want: nil,
 		},
 		"different address but the same blockchain ID is not allowed": {
 			Msg: &RegisterTokenMsg{
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				Targets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("a-blobchain-id-1")},
-					{BlockchainID: "blobchain", Address: []byte("a-blobchain-id-2")},
+					{BlockchainID: "blobchain", Address: "a-blobchain-id-1"},
+					{BlockchainID: "blobchain", Address: "a-blobchain-id-2"},
 				},
 			},
 			Want: errors.ErrDuplicate,
@@ -84,14 +74,6 @@ func TestTransferTokenMsgValidate(t *testing.T) {
 			},
 			Want: errors.ErrInput,
 		},
-		"invalid username": {
-			Msg: &TransferTokenMsg{
-				Metadata: &weave.Metadata{Schema: 1},
-				Username: "xx",
-				NewOwner: weavetest.NewCondition().Address(),
-			},
-			Want: errors.ErrInput,
-		},
 	}
 
 	for testName, tc := range cases {
@@ -113,7 +95,7 @@ func TestChangeTokenTargetsMsgValidate(t *testing.T) {
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				NewTargets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("1234567890")},
+					{BlockchainID: "blobchain", Address: "1234567890"},
 				},
 			},
 			Want: nil,
@@ -123,7 +105,7 @@ func TestChangeTokenTargetsMsgValidate(t *testing.T) {
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				NewTargets: []BlockchainAddress{
-					{BlockchainID: "x", Address: []byte("x")},
+					{BlockchainID: "x", Address: "x"},
 				},
 			},
 			Want: errors.ErrInput,
@@ -134,35 +116,15 @@ func TestChangeTokenTargetsMsgValidate(t *testing.T) {
 				Username:   "alice*iov",
 				NewTargets: []BlockchainAddress{},
 			},
-			Want: errors.ErrEmpty,
-		},
-		"invalid username": {
-			Msg: &ChangeTokenTargetsMsg{
-				Metadata: &weave.Metadata{Schema: 1},
-				Username: "xx",
-				NewTargets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("1234567890")},
-				},
-			},
-			Want: errors.ErrInput,
-		},
-		"invalid username separator": {
-			Msg: &ChangeTokenTargetsMsg{
-				Metadata: &weave.Metadata{Schema: 1},
-				Username: "alice@iov",
-				NewTargets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("1234567890")},
-				},
-			},
-			Want: errors.ErrInput,
+			Want: nil,
 		},
 		"different address but the same blockchain ID is not allowed": {
 			Msg: &ChangeTokenTargetsMsg{
 				Metadata: &weave.Metadata{Schema: 1},
 				Username: "alice*iov",
 				NewTargets: []BlockchainAddress{
-					{BlockchainID: "blobchain", Address: []byte("a-blobchain-id-1")},
-					{BlockchainID: "blobchain", Address: []byte("a-blobchain-id-2")},
+					{BlockchainID: "blobchain", Address: "a-blobchain-id-1"},
+					{BlockchainID: "blobchain", Address: "a-blobchain-id-2"},
 				},
 			},
 			Want: errors.ErrDuplicate,

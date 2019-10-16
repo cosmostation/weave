@@ -37,10 +37,10 @@ func TestPaymentChannelHandlers(t *testing.T) {
 	cash.RegisterQuery(qr)
 	RegisterQuery(qr)
 
-	src := weavetest.NewCondition()
+	source := weavetest.NewCondition()
 	// Because it is allowed, use different public key to sign the message.
-	srcSig := weavetest.NewKey()
-	recipient := weavetest.NewCondition()
+	sourceSig := weavetest.NewKey()
+	destination := weavetest.NewCondition()
 
 	cases := map[string]struct {
 		actions []action
@@ -49,12 +49,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"creating a payment channel allocates funds": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -70,24 +70,25 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					wantRes: []orm.Object{
 						orm.NewSimpleObj(weavetest.SequenceID(1), &PaymentChannel{
 							Metadata:     &weave.Metadata{Schema: 1},
-							Src:          src.Address(),
-							Recipient:    recipient.Address(),
-							SenderPubkey: srcSig.PublicKey(),
+							Source:       source.Address(),
+							Destination:  destination.Address(),
+							SourcePubkey: sourceSig.PublicKey(),
 							Total:        dogeCoin(10, 0),
 							Timeout:      weave.AsUnixTime(inOneHour),
 							Memo:         "start",
 							Transferred:  dogeCoin(0, 0),
+							Address:      paymentChannelAccount(weavetest.SequenceID(1)),
 						}),
 					},
 				},
-				// Query senders wallet to ensure money was
+				// Query sources wallet to ensure money was
 				// taken from the account.
 				{
 					path:   "/wallets",
-					data:   src.Address(),
+					data:   source.Address(),
 					bucket: cashBucket.Bucket,
 					wantRes: []orm.Object{
-						mustObject(cash.WalletWith(src.Address(), dogeCoin(1, 22))),
+						mustObject(cash.WalletWith(source.Address(), dogeCoin(1, 22))),
 					},
 				},
 				// Query payment channel wallet to ensure money was
@@ -105,12 +106,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"closing a channel without a transfer releases funds": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -139,27 +140,27 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					bucket:  payChanBucket,
 					wantRes: nil,
 				},
-				// Query senders wallet to ensure money was
+				// Query sources wallet to ensure money was
 				// returned to the account.
 				{
 					path:   "/wallets",
-					data:   src.Address(),
+					data:   source.Address(),
 					bucket: cashBucket.Bucket,
 					wantRes: []orm.Object{
-						mustObject(cash.WalletWith(src.Address(), dogeCoin(11, 22))),
+						mustObject(cash.WalletWith(source.Address(), dogeCoin(11, 22))),
 					},
 				},
 			},
 		},
-		"transfer moves allocated coins to the recipient": {
+		"transfer moves allocated coins to the destination": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -167,8 +168,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "testchain-123",
@@ -180,8 +181,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 103,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "testchain-123",
@@ -204,10 +205,10 @@ func TestPaymentChannelHandlers(t *testing.T) {
 				},
 				{
 					path:   "/wallets",
-					data:   recipient.Address(),
+					data:   destination.Address(),
 					bucket: cashBucket.Bucket,
 					wantRes: []orm.Object{
-						mustObject(cash.WalletWith(recipient.Address(), dogeCoin(3, 0))),
+						mustObject(cash.WalletWith(destination.Address(), dogeCoin(3, 0))),
 					},
 				},
 			},
@@ -215,12 +216,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"closing a channel with a transfer made releases funds": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -228,8 +229,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "testchain-123",
@@ -262,25 +263,25 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					bucket:  payChanBucket,
 					wantRes: nil,
 				},
-				// Query senders wallet to ensure that the
+				// Query sources wallet to ensure that the
 				// remaining coins were returned to the
 				// account.
 				{
 					path:   "/wallets",
-					data:   src.Address(),
+					data:   source.Address(),
 					bucket: cashBucket.Bucket,
 					wantRes: []orm.Object{
-						mustObject(cash.WalletWith(src.Address(), dogeCoin(9, 22))),
+						mustObject(cash.WalletWith(source.Address(), dogeCoin(9, 22))),
 					},
 				},
 				// What was transferred must belong to
-				// recipient.
+				// destination.
 				{
 					path:   "/wallets",
-					data:   recipient.Address(),
+					data:   destination.Address(),
 					bucket: cashBucket.Bucket,
 					wantRes: []orm.Object{
-						mustObject(cash.WalletWith(recipient.Address(), dogeCoin(2, 0))),
+						mustObject(cash.WalletWith(destination.Address(), dogeCoin(2, 0))),
 					},
 				},
 			},
@@ -288,12 +289,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"creating a payment channel without enough funds fails": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(999, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -303,15 +304,15 @@ func TestPaymentChannelHandlers(t *testing.T) {
 				},
 			},
 		},
-		"only recipient can close non expired payment channel": {
+		"only destination can close non expired payment channel": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -321,7 +322,7 @@ func TestPaymentChannelHandlers(t *testing.T) {
 				// Signer cannot close a channel that holds
 				// funds and is not expired.
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CloseMsg{
 						Metadata:  &weave.Metadata{Schema: 1},
 						ChannelID: weavetest.SequenceID(1),
@@ -330,9 +331,9 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize:      104,
 					wantDeliverErr: errors.ErrMsg,
 				},
-				// Recipient can close channel any time.
+				// Destination can close channel any time.
 				{
-					conditions: []weave.Condition{recipient},
+					conditions: []weave.Condition{destination},
 					msg: &CloseMsg{
 						Metadata:  &weave.Metadata{Schema: 1},
 						ChannelID: weavetest.SequenceID(1),
@@ -345,12 +346,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"transfer ensure transaction on the right chain": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -358,8 +359,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "another-chain-666",
@@ -376,12 +377,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"transfer of more funds than allocated fails": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -389,8 +390,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "testchain-123",
@@ -404,15 +405,15 @@ func TestPaymentChannelHandlers(t *testing.T) {
 				},
 			},
 		},
-		"cannot create a channel without sender signature": {
+		"cannot create a channel without source signature": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: nil,
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: nil,
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -425,12 +426,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"transfer on a closed or non existing channel fails": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -438,7 +439,7 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{recipient},
+					conditions: []weave.Condition{destination},
 					msg: &CloseMsg{
 						Metadata:  &weave.Metadata{Schema: 1},
 						ChannelID: weavetest.SequenceID(1),
@@ -447,8 +448,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 101,
 				},
 				{
-					conditions: []weave.Condition{src},
-					msg: setSignature(srcSig, &TransferMsg{
+					conditions: []weave.Condition{source},
+					msg: setSignature(sourceSig, &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Payment: &Payment{
 							ChainID:   "testchain-123",
@@ -465,12 +466,12 @@ func TestPaymentChannelHandlers(t *testing.T) {
 		"transfer signed with invalid key fails": {
 			actions: []action{
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &CreateMsg{
 						Metadata:     &weave.Metadata{Schema: 1},
-						Src:          src.Address(),
-						Recipient:    recipient.Address(),
-						SenderPubkey: srcSig.PublicKey(),
+						Source:       source.Address(),
+						Destination:  destination.Address(),
+						SourcePubkey: sourceSig.PublicKey(),
 						Total:        dogeCoin(10, 0),
 						Timeout:      weave.AsUnixTime(inOneHour),
 						Memo:         "start",
@@ -478,7 +479,7 @@ func TestPaymentChannelHandlers(t *testing.T) {
 					blocksize: 100,
 				},
 				{
-					conditions: []weave.Condition{src},
+					conditions: []weave.Condition{source},
 					msg: &TransferMsg{
 						Metadata: &weave.Metadata{Schema: 1},
 						Signature: &crypto.Signature{
@@ -506,8 +507,8 @@ func TestPaymentChannelHandlers(t *testing.T) {
 
 			migration.MustInitPkg(db, "paychan", "cash")
 
-			// Create a sender account with coins.
-			wallet, err := cash.WalletWith(src.Address(), dogeCoin(11, 22))
+			// Create a source account with coins.
+			wallet, err := cash.WalletWith(source.Address(), dogeCoin(11, 22))
 			if err != nil {
 				t.Fatalf("create wallet: %s", err)
 			}

@@ -35,15 +35,15 @@ func TestCreateMsg(t *testing.T) {
 			},
 			Exp: errors.ErrInput,
 		},
-		"Invalid recipient": {
+		"Invalid destination": {
 			Mutator: func(msg *aswap.CreateMsg) {
-				msg.Recipient = nil
+				msg.Destination = nil
 			},
 			Exp: errors.ErrEmpty,
 		},
 		"Invalid src": {
 			Mutator: func(msg *aswap.CreateMsg) {
-				msg.Src = nil
+				msg.Source = nil
 			},
 			Exp: errors.ErrEmpty,
 		},
@@ -80,8 +80,8 @@ func TestCreateMsg(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		baseMsg := aswap.CreateMsg{Metadata: &weave.Metadata{Schema: 1},
-			Src:          alice.Address(),
-			Recipient:    bob.Address(),
+			Source:       alice.Address(),
+			Destination:  bob.Address(),
 			PreimageHash: make([]byte, 32),
 			Amount:       []*coin.Coin{&validCoin},
 			Timeout:      weave.UnixTime(1),
@@ -145,28 +145,28 @@ func TestReleaseMsg(t *testing.T) {
 	}
 }
 
-func TestReturnSwapMsg(t *testing.T) {
+func TestReturnMsg(t *testing.T) {
 	specs := map[string]struct {
-		Mutator func(msg *aswap.ReturnSwapMsg)
+		Mutator func(msg *aswap.ReturnMsg)
 		Exp     *errors.Error
 	}{
 
 		"Happy path": {},
 		"Invalid metadata": {
-			Mutator: func(msg *aswap.ReturnSwapMsg) {
+			Mutator: func(msg *aswap.ReturnMsg) {
 				msg.Metadata.Schema = 0
 			},
 			Exp: errors.ErrMetadata,
 		},
 		"Invalid SwapID": {
-			Mutator: func(msg *aswap.ReturnSwapMsg) {
+			Mutator: func(msg *aswap.ReturnMsg) {
 				msg.SwapID = make([]byte, 7)
 			},
 			Exp: errors.ErrInput,
 		},
 	}
 	for msg, spec := range specs {
-		baseMsg := aswap.ReturnSwapMsg{
+		baseMsg := aswap.ReturnMsg{
 			Metadata: &weave.Metadata{Schema: 1},
 			SwapID:   make([]byte, 8),
 		}

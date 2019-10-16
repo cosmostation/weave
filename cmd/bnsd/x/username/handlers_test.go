@@ -6,6 +6,7 @@ import (
 
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/errors"
+	"github.com/iov-one/weave/gconf"
 	"github.com/iov-one/weave/migration"
 	"github.com/iov-one/weave/store"
 	"github.com/iov-one/weave/weavetest"
@@ -31,8 +32,8 @@ func TestRegisterTokenHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "bobby*iov",
 					Targets: []BlockchainAddress{
-						{BlockchainID: "bc_1", Address: []byte("addr1")},
-						{BlockchainID: "bc_2", Address: []byte("addr2")},
+						{BlockchainID: "bc_1", Address: "addr1"},
+						{BlockchainID: "bc_2", Address: "addr2"},
 					},
 				},
 			},
@@ -44,7 +45,7 @@ func TestRegisterTokenHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "alice*iov",
 					Targets: []BlockchainAddress{
-						{BlockchainID: "bc_1", Address: []byte("addr1")},
+						{BlockchainID: "bc_1", Address: "addr1"},
 					},
 				},
 			},
@@ -52,17 +53,15 @@ func TestRegisterTokenHandler(t *testing.T) {
 			WantCheckErr:   errors.ErrDuplicate,
 			WantDeliverErr: errors.ErrDuplicate,
 		},
-		"target cannot be empty": {
+		"target can be empty": {
 			Tx: &weavetest.Tx{
 				Msg: &RegisterTokenMsg{
 					Metadata: &weave.Metadata{Schema: 1},
-					Username: "alice*iov",
+					Username: "alice2*iov",
 					Targets:  []BlockchainAddress{},
 				},
 			},
-			Auth:           &weavetest.Auth{Signer: aliceCond},
-			WantCheckErr:   errors.ErrEmpty,
-			WantDeliverErr: errors.ErrEmpty,
+			Auth: &weavetest.Auth{Signer: aliceCond},
 		},
 		"username must be provided": {
 			Tx: &weavetest.Tx{
@@ -70,7 +69,7 @@ func TestRegisterTokenHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "",
 					Targets: []BlockchainAddress{
-						{BlockchainID: "bc_1", Address: []byte("addr1")},
+						{BlockchainID: "bc_1", Address: "addr1"},
 					},
 				},
 			},
@@ -85,11 +84,19 @@ func TestRegisterTokenHandler(t *testing.T) {
 			db := store.MemStore()
 			migration.MustInitPkg(db, "username")
 
+			config := Configuration{
+				ValidUsernameName:  `[a-z0-9\-_.]{3,64}`,
+				ValidUsernameLabel: `[a-z0-9]{3,16}`,
+			}
+			if err := gconf.Save(db, "username", &config); err != nil {
+				t.Fatalf("cannot save configuration: %s", err)
+			}
+
 			b := NewTokenBucket()
 			_, err := b.Put(db, []byte("alice*iov"), &Token{
 				Metadata: &weave.Metadata{Schema: 1},
 				Targets: []BlockchainAddress{
-					{BlockchainID: "unichain", Address: []byte("some-unichain-address")},
+					{BlockchainID: "unichain", Address: "some-unichain-address"},
 				},
 				Owner: aliceCond.Address(),
 			})
@@ -178,7 +185,7 @@ func TestChangeTokenOwnerHandler(t *testing.T) {
 			_, err := b.Put(db, []byte("alice*iov"), &Token{
 				Metadata: &weave.Metadata{Schema: 1},
 				Targets: []BlockchainAddress{
-					{BlockchainID: "unichain", Address: []byte("some-unichain-address")},
+					{BlockchainID: "unichain", Address: "some-unichain-address"},
 				},
 				Owner: aliceCond.Address(),
 			})
@@ -218,8 +225,8 @@ func TestChangeTokenTargetHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "alice*iov",
 					NewTargets: []BlockchainAddress{
-						{BlockchainID: "hydracoin", Address: []byte("some-hydra-address")},
-						{BlockchainID: "pegasuscoin", Address: []byte("some-pagasus-address")},
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+						{BlockchainID: "pegasuscoin", Address: "some-pagasus-address"},
 					},
 				},
 			},
@@ -231,7 +238,7 @@ func TestChangeTokenTargetHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "alice*iov",
 					NewTargets: []BlockchainAddress{
-						{BlockchainID: "unichain", Address: []byte("some-unicorn-address")},
+						{BlockchainID: "unichain", Address: "some-unicorn-address"},
 					},
 				},
 			},
@@ -249,13 +256,83 @@ func TestChangeTokenTargetHandler(t *testing.T) {
 			WantCheckErr:   errors.ErrMetadata,
 			WantDeliverErr: errors.ErrMetadata,
 		},
+		"invalid message, username without asterisk separator": {
+			Tx: &weavetest.Tx{
+				Msg: &ChangeTokenTargetsMsg{
+					Metadata: &weave.Metadata{Schema: 1},
+					Username: "alice@iov",
+					NewTargets: []BlockchainAddress{
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+					},
+				},
+			},
+			Auth:           &weavetest.Auth{Signer: aliceCond},
+			WantCheckErr:   errors.ErrInput,
+			WantDeliverErr: errors.ErrInput,
+		},
+		"invalid message, username name too short": {
+			Tx: &weavetest.Tx{
+				Msg: &ChangeTokenTargetsMsg{
+					Metadata: &weave.Metadata{Schema: 1},
+					Username: "a*iov",
+					NewTargets: []BlockchainAddress{
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+					},
+				},
+			},
+			Auth:           &weavetest.Auth{Signer: aliceCond},
+			WantCheckErr:   errors.ErrInput,
+			WantDeliverErr: errors.ErrInput,
+		},
+		"invalid message, username label too short": {
+			Tx: &weavetest.Tx{
+				Msg: &ChangeTokenTargetsMsg{
+					Metadata: &weave.Metadata{Schema: 1},
+					Username: "alice*x",
+					NewTargets: []BlockchainAddress{
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+					},
+				},
+			},
+			Auth:           &weavetest.Auth{Signer: aliceCond},
+			WantCheckErr:   errors.ErrInput,
+			WantDeliverErr: errors.ErrInput,
+		},
+		"invalid message, username name with invalid characters": {
+			Tx: &weavetest.Tx{
+				Msg: &ChangeTokenTargetsMsg{
+					Metadata: &weave.Metadata{Schema: 1},
+					Username: "ALICE*iov",
+					NewTargets: []BlockchainAddress{
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+					},
+				},
+			},
+			Auth:           &weavetest.Auth{Signer: aliceCond},
+			WantCheckErr:   errors.ErrInput,
+			WantDeliverErr: errors.ErrInput,
+		},
+		"invalid message, username label with invalid characters": {
+			Tx: &weavetest.Tx{
+				Msg: &ChangeTokenTargetsMsg{
+					Metadata: &weave.Metadata{Schema: 1},
+					Username: "alice*IOV",
+					NewTargets: []BlockchainAddress{
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
+					},
+				},
+			},
+			Auth:           &weavetest.Auth{Signer: aliceCond},
+			WantCheckErr:   errors.ErrInput,
+			WantDeliverErr: errors.ErrInput,
+		},
 		"only the owner can change the token": {
 			Tx: &weavetest.Tx{
 				Msg: &ChangeTokenTargetsMsg{
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "alice*iov",
 					NewTargets: []BlockchainAddress{
-						{BlockchainID: "hydracoin", Address: []byte("some-hydra-address")},
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
 					},
 				},
 			},
@@ -269,7 +346,7 @@ func TestChangeTokenTargetHandler(t *testing.T) {
 					Metadata: &weave.Metadata{Schema: 1},
 					Username: "does-not-exist*iov",
 					NewTargets: []BlockchainAddress{
-						{BlockchainID: "hydracoin", Address: []byte("some-hydra-address")},
+						{BlockchainID: "hydracoin", Address: "some-hydra-address"},
 					},
 				},
 			},
@@ -283,11 +360,19 @@ func TestChangeTokenTargetHandler(t *testing.T) {
 			db := store.MemStore()
 			migration.MustInitPkg(db, "username")
 
+			config := Configuration{
+				ValidUsernameName:  `[a-z0-9\-_.]{3,64}`,
+				ValidUsernameLabel: `[a-z0-9]{3,16}`,
+			}
+			if err := gconf.Save(db, "username", &config); err != nil {
+				t.Fatalf("cannot save configuration: %s", err)
+			}
+
 			b := NewTokenBucket()
 			_, err := b.Put(db, []byte("alice*iov"), &Token{
 				Metadata: &weave.Metadata{Schema: 1},
 				Targets: []BlockchainAddress{
-					{BlockchainID: "unichain", Address: []byte("some-unicorn-address")},
+					{BlockchainID: "unichain", Address: "some-unicorn-address"},
 				},
 				Owner: aliceCond.Address(),
 			})

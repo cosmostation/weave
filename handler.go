@@ -1,9 +1,12 @@
 package weave
 
 import (
+	"bytes"
 	"encoding/json"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/iov-one/weave/errors"
 )
 
 // Handler is a core engine that can process a few specific messages
@@ -34,12 +37,6 @@ type Decorator interface {
 	Deliver(ctx Context, store KVStore, tx Tx, next Deliverer) (*DeliverResult, error)
 }
 
-// Ticker is a method that is called the beginning of every block,
-// which can be used to perform periodic or delayed tasks
-type Ticker interface {
-	Tick(ctx Context, store KVStore) (TickResult, error)
-}
-
 // Registry is an interface to register your handler,
 // the setup side of a Router
 type Registry interface {
@@ -64,6 +61,50 @@ func (o Options) ReadOptions(key string, obj interface{}) error {
 		return nil
 	}
 	return json.Unmarshal(msg, obj)
+}
+
+// Stream expects an array of json elements and allows to process them sequentially
+// this helps when one needs to parse a large json without having any memory leaks.
+// Returns ErrEmpty on empty key or when there are no more elements.
+// Returns ErrState when the stream has finished/encountered a Decode error.mi
+func (o Options) Stream(key string) func(obj interface{}) error {
+	msg := o[key]
+	dec := json.NewDecoder(bytes.NewReader(msg))
+	initialized := false
+	closed := false
+
+	return func(obj interface{}) error {
+		if !initialized {
+			if len(msg) == 0 {
+				return errors.Wrap(errors.ErrEmpty, "data")
+			}
+
+			// read opening bracket
+			if _, err := dec.Token(); err != nil {
+				return errors.Wrapf(errors.ErrInput, "opening bracket %s", err)
+			}
+
+			initialized = true
+		}
+		if closed {
+			return errors.Wrap(errors.ErrState, "closed")
+		}
+
+		if dec.More() {
+			if err := dec.Decode(obj); err != nil {
+				return errors.Wrapf(errors.ErrInput, "decode %s", err)
+			}
+			return nil
+		}
+
+		closed = true
+		// read closing bracket
+		if _, err := dec.Token(); err != nil {
+			return errors.Wrapf(errors.ErrInput, "closing bracket %s", err)
+		}
+
+		return errors.Wrap(errors.ErrEmpty, "end")
+	}
 }
 
 // GenesisParams represents parameters set in genesis that could be useful

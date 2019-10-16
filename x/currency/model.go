@@ -28,20 +28,12 @@ func NewTokenInfo(ticker, name string) orm.Object {
 }
 
 func (t *TokenInfo) Validate() error {
-	if err := t.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "metadata")
-	}
+	var errs error
+	errs = errors.AppendField(errs, "Metadata", t.Metadata.Validate())
 	if !isTokenName(t.Name) {
-		return errors.Wrapf(errors.ErrState, "invalid token name %v", t.Name)
+		errs = errors.AppendField(errs, "Name", errors.ErrState)
 	}
-	return nil
-}
-
-func (t *TokenInfo) Copy() orm.CloneableData {
-	return &TokenInfo{
-		Metadata: t.Metadata.Copy(),
-		Name:     t.Name,
-	}
+	return errs
 }
 
 // TokenInfoBucket stores TokenInfo instances, using ticker name (currency
@@ -52,7 +44,7 @@ type TokenInfoBucket struct {
 
 func NewTokenInfoBucket() *TokenInfoBucket {
 	return &TokenInfoBucket{
-		Bucket: migration.NewBucket("currency", "tokeninfo", orm.NewSimpleObj(nil, &TokenInfo{})),
+		Bucket: migration.NewBucket("currency", "tokeninfo", &TokenInfo{}),
 	}
 }
 

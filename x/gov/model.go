@@ -1,6 +1,7 @@
 package gov
 
 import (
+	"fmt"
 	"math/big"
 	"regexp"
 	"time"
@@ -8,7 +9,6 @@ import (
 	"github.com/iov-one/weave"
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/migration"
-	"github.com/iov-one/weave/orm"
 )
 
 const maxElectors = 2000
@@ -23,52 +23,40 @@ func init() {
 	migration.MustRegister(1, &Vote{}, migration.NoModification)
 }
 
+// Condition calculates the address of an election rule given
+// the key
+func Condition(key []byte) weave.Condition {
+	return weave.NewCondition("gov", "rule", key)
+}
+
 func (m *Electorate) SetVersion(v uint32) {
 	m.Version = v
 }
 
 func (m Electorate) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "invalid metadata")
-	}
-
-	if len(m.Electors) == 0 {
-		return errors.Wrap(errors.ErrInput, "electors must not be empty")
-	}
-	if len(m.Electors) > maxElectors {
-		return errors.Wrapf(errors.ErrInput, "electors must not exceed: %d", maxElectors)
+	var errs error
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	if n := len(m.Electors); n == 0 {
+		errs = errors.Append(errs, errors.Field("Electors", errors.ErrInput, "electors must not be empty"))
+	} else if n > maxElectors {
+		errs = errors.Append(errs, errors.Field("Electors", errors.ErrInput, "electors size must not exceed %d", maxElectors))
 	}
 	if !validTitle(m.Title) {
-		return errors.Wrapf(errors.ErrInput, "title: %q", m.Title)
+		errs = errors.AppendField(errs, "Title", errors.ErrInput)
 	}
-
 	var totalWeight uint64
-	for _, v := range m.Electors {
-		if err := v.Validate(); err != nil {
-			return err
-		}
+	for i, v := range m.Electors {
+		errs = errors.AppendField(errs, fmt.Sprintf("Electors.%d", i), v.Validate())
 		totalWeight += uint64(v.Weight)
 	}
 	if diff := len(m.Electors) - newMerger(m.Electors).size(); diff != 0 {
-		return errors.Wrapf(errors.ErrInput, "duplicate electors: %d", diff)
+		errs = errors.Append(errs, errors.Field("Electors", errors.ErrInput, "duplicate electors: %d", diff))
 	}
 	if m.TotalElectorateWeight != totalWeight {
-		return errors.Wrap(errors.ErrInput, "total weight does not match sum")
+		errs = errors.Append(errs, errors.Field("TotalElectorateWeight", errors.ErrInput, "total weight does not match sum"))
 	}
-	if err := m.Admin.Validate(); err != nil {
-		return errors.Wrap(err, "admin")
-	}
-	return nil
-}
-
-func (m Electorate) Copy() orm.CloneableData {
-	p := make([]Elector, 0, len(m.Electors))
-	copy(p, m.Electors)
-	return &Electorate{
-		Title:    m.Title,
-		Electors: p,
-		Version:  m.Version,
-	}
+	errs = errors.AppendField(errs, "Admin", m.Admin.Validate())
+	return errs
 }
 
 // Weight return the weight for the given address is in the electors list and an ok flag which
@@ -135,15 +123,10 @@ func (m ElectionRule) Validate() error {
 			return errors.Wrap(err, "quorum")
 		}
 	}
-	return nil
-}
-
-func (m ElectionRule) Copy() orm.CloneableData {
-	return &ElectionRule{
-		Title:        m.Title,
-		VotingPeriod: m.VotingPeriod,
-		Threshold:    m.Threshold,
+	if err := m.Address.Validate(); err != nil {
+		return errors.Wrap(err, "address")
 	}
+	return nil
 }
 
 func (m Fraction) Validate() error {
@@ -210,25 +193,6 @@ func (m *Proposal) Validate() error {
 		return errors.Wrap(err, "electorate reference")
 	}
 	return m.VoteState.Validate()
-}
-
-func (m Proposal) Copy() orm.CloneableData {
-	optionCopy := append([]byte{}, m.RawOption...)
-	return &Proposal{
-		Metadata:        m.Metadata.Copy(),
-		Title:           m.Title,
-		RawOption:       optionCopy,
-		Description:     m.Description,
-		ElectionRuleRef: orm.VersionedIDRef{ID: m.ElectionRuleRef.ID, Version: m.ElectionRuleRef.Version},
-		ElectorateRef:   orm.VersionedIDRef{ID: m.ElectorateRef.ID, Version: m.ElectorateRef.Version},
-		VotingStartTime: m.VotingStartTime,
-		VotingEndTime:   m.VotingEndTime,
-		SubmissionTime:  m.SubmissionTime,
-		Author:          m.Author,
-		VoteState:       m.VoteState,
-		Status:          m.Status,
-		Result:          m.Result,
-	}
 }
 
 // CountVote updates the intermediate tally result by adding the new vote weight.
@@ -303,15 +267,6 @@ func (r *Resolution) Validate() error {
 	return nil
 }
 
-func (r Resolution) Copy() orm.CloneableData {
-	return &Resolution{
-		Metadata:      r.Metadata.Copy(),
-		ProposalID:    r.ProposalID,
-		ElectorateRef: r.ElectorateRef,
-		Resolution:    r.Resolution,
-	}
-}
-
 func NewTallyResult(quorum *Fraction, threshold Fraction, totalElectorateWeight uint64) TallyResult {
 	return TallyResult{
 		Quorum:                quorum,
@@ -358,59 +313,27 @@ func (m TallyResult) TotalVotes() uint64 {
 }
 
 func (m TallyResult) Validate() error {
+	var errs error
 	if m.Quorum != nil {
-		if err := m.Quorum.Validate(); err != nil {
-			return errors.Wrap(errors.ErrState, "quorum")
-		}
+		errs = errors.AppendField(errs, "Quorum", m.Quorum.Validate())
 	}
 	if m.TotalElectorateWeight == 0 {
-		return errors.Wrap(errors.ErrState, "totalElectorateWeight")
+		errs = errors.Append(errs, errors.Field("TotalElectorateWeight", errors.ErrState, "must not be zero"))
 	}
 	if m.TotalVotes() > m.TotalElectorateWeight {
-		return errors.Wrap(errors.ErrState, "votes must not exceed totalElectorateWeight")
+		errs = errors.Append(errs, errors.Field("TotalElectorateWeight", errors.ErrState, "votes must not exceed TotalElectorateWeight"))
 	}
-	if err := m.Threshold.Validate(); err != nil {
-		return errors.Wrap(errors.ErrState, "threshold")
-	}
-	return nil
+	errs = errors.AppendField(errs, "Threshold", m.Threshold.Validate())
+	return errs
 }
 
 // validate vote object contains valid elector and voted option
 func (m Vote) Validate() error {
-	if err := m.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "invalid metadata")
-	}
-	if err := m.Elector.Validate(); err != nil {
-		return errors.Wrap(err, "invalid elector")
-	}
+	var errs error
+	errs = errors.AppendField(errs, "Metadata", m.Metadata.Validate())
+	errs = errors.AppendField(errs, "Elector", m.Elector.Validate())
 	if m.Voted == VoteOption_Invalid {
-		return errors.Wrap(errors.ErrInput, "invalid vote option")
+		errs = errors.AppendField(errs, "Voted", errors.ErrInput)
 	}
-	return nil
-}
-
-func (m Vote) Copy() orm.CloneableData {
-	return &Vote{
-		Elector: m.Elector,
-		Voted:   m.Voted,
-	}
-}
-
-// DiffElectors contains the changes that should be applied. Adding an address should have a positive weight, removing
-// with weight=0.
-type ElectorsDiff []Elector
-
-func (e ElectorsDiff) Validate() error {
-	if len(e) == 0 {
-		return errors.Wrap(errors.ErrEmpty, "electors")
-	}
-	for i, v := range e {
-		if v.Weight > maxWeight {
-			return errors.Wrap(errors.ErrInput, "must not be greater max weight")
-		}
-		if err := v.Address.Validate(); err != nil {
-			return errors.Wrapf(err, "address at position: %d", i)
-		}
-	}
-	return nil
+	return errs
 }

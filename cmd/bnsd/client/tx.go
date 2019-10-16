@@ -16,15 +16,15 @@ type Tx interface {
 }
 
 // BuildSendTx will create an unsigned tx to move tokens
-func BuildSendTx(src, dest weave.Address, amount coin.Coin, memo string) *bnsd.Tx {
+func BuildSendTx(source, destination weave.Address, amount coin.Coin, memo string) *bnsd.Tx {
 	return &bnsd.Tx{
 		Sum: &bnsd.Tx_CashSendMsg{
 			CashSendMsg: &cash.SendMsg{
-				Metadata: &weave.Metadata{Schema: 1},
-				Src:      src,
-				Dest:     dest,
-				Amount:   &amount,
-				Memo:     memo,
+				Metadata:    &weave.Metadata{Schema: 1},
+				Source:      source,
+				Destination: destination,
+				Amount:      &amount,
+				Memo:        memo,
 			},
 			// TODO: add fees, etc...
 		},
@@ -41,8 +41,8 @@ func SignTx(tx *bnsd.Tx, signer *PrivateKey, chainID string, nonce int64) error 
 	return nil
 }
 
-// ParseBcpTx will load a serialize tx into a format we can read
-func ParseBcpTx(data []byte) (*bnsd.Tx, error) {
+// ParseBnsTx will load a serialize tx into a format we can read
+func ParseBnsTx(data []byte) (*bnsd.Tx, error) {
 	var tx bnsd.Tx
 	err := tx.Unmarshal(data)
 	if err != nil {

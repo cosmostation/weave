@@ -7,11 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/iov-one/weave"
+	"github.com/iov-one/weave/app"
 	bnsd "github.com/iov-one/weave/cmd/bnsd/app"
+	abci "github.com/tendermint/tendermint/abci/types"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 )
 
 // unpackSequence process given raw string representation and does its best in
@@ -158,3 +163,42 @@ const txHeaderSize = 4
 type stater interface {
 	Stat() (os.FileInfo, error)
 }
+
+var _ app.Queryable = rpcQueryWrapper{}
+
+type rpcQueryWrapper struct {
+	client rpcclient.Client
+}
+
+func (r rpcQueryWrapper) Query(query abci.RequestQuery) abci.ResponseQuery {
+	res, err := r.client.ABCIQueryWithOptions(query.Path, query.Data, rpcclient.ABCIQueryOptions{Height: query.Height, Prove: query.Prove})
+	if err != nil {
+		return abci.ResponseQuery{Code: 500, Log: err.Error()}
+	}
+	return res.Response
+}
+
+// TODO: return a close function as well
+func tendermintStore(nodeURL string) weave.ReadOnlyKVStore {
+	tm := rpcclient.NewHTTP(nodeURL, "/websocket")
+	return app.NewABCIStore(rpcQueryWrapper{tm})
+}
+
+// readInput returns all bytes waiting on given input. This function immediatly
+// returns errNoPipe error if the input is not piped to avoid forever waiting.
+func readInput(input io.Reader) ([]byte, error) {
+	// If the given reader is providing a stat information (ie os.Stdin)
+	// then check if the data is being piped. That should prevent us from
+	// waiting for a data on a reader that no one ever writes to.
+	if s, ok := input.(stater); ok {
+		if info, err := s.Stat(); err == nil {
+			isPipe := (info.Mode() & os.ModeCharDevice) == 0
+			if !isPipe {
+				return nil, errNoPipe
+			}
+		}
+	}
+	return ioutil.ReadAll(input)
+}
+
+var errNoPipe = errors.New("no data piped")

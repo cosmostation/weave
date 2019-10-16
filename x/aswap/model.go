@@ -10,56 +10,29 @@ func init() {
 	migration.MustRegister(1, &Swap{}, migration.NoModification)
 }
 
-const (
-	// BucketName is where we store the swaps
-	BucketName = "swap"
-
-	// SequenceName is an auto-increment ID counter for swaps
-	SequenceName = "id"
-)
-
 var _ orm.CloneableData = (*Swap)(nil)
 
 // Validate ensures the Swap is valid
 func (s *Swap) Validate() error {
-	if err := s.Metadata.Validate(); err != nil {
-		return errors.Wrap(err, "metadata")
-	}
-	if err := s.Src.Validate(); err != nil {
-		return errors.Wrap(err, "src")
-	}
-	if err := s.Recipient.Validate(); err != nil {
-		return errors.Wrap(err, "recipient")
-	}
+	var errs error
+	errs = errors.AppendField(errs, "Metadata", s.Metadata.Validate())
+	errs = errors.AppendField(errs, "Source", s.Source.Validate())
+	errs = errors.AppendField(errs, "Destination", s.Destination.Validate())
 	if len(s.PreimageHash) != preimageHashSize {
-		return errors.Wrapf(errors.ErrInput,
-			"preimage hash has to be exactly %d bytes", preimageHashSize)
+		errs = errors.Append(errs, errors.Field("PreimageHash", errors.ErrInput, "preimage hash has to be exactly %d bytes", preimageHashSize))
 	}
 	if s.Timeout == 0 {
 		// Zero timeout is a valid value that dates to 1970-01-01. We
 		// know that this value is in the past and makes no sense. Most
 		// likely value was not provided and a zero value remained.
-		return errors.Wrap(errors.ErrInput, "timeout is required")
+		errs = errors.Append(errs, errors.Field("Timeout", errors.ErrInput, "timeout is required"))
 	}
-	if err := s.Timeout.Validate(); err != nil {
-		return errors.Wrap(err, "invalid timeout value")
-	}
+	errs = errors.AppendField(errs, "Timeout", s.Timeout.Validate())
 	if len(s.Memo) > maxMemoSize {
-		return errors.Wrapf(errors.ErrInput, "memo %s", s.Memo)
+		errs = errors.Append(errs, errors.Field("Memo", errors.ErrInput, "memo must be not longer than %d characters", maxMemoSize))
 	}
-	return nil
-}
-
-// Copy makes a new swap
-func (s *Swap) Copy() orm.CloneableData {
-	return &Swap{
-		Metadata:     s.Metadata.Copy(),
-		PreimageHash: s.PreimageHash,
-		Src:          s.Src,
-		Recipient:    s.Recipient,
-		Timeout:      s.Timeout,
-		Memo:         s.Memo,
-	}
+	errs = errors.AppendField(errs, "Address", s.Address.Validate())
+	return errs
 }
 
 // AsSwap extracts a *Swap value or nil from the object
@@ -72,28 +45,19 @@ func AsSwap(obj orm.Object) *Swap {
 	return obj.Value().(*Swap)
 }
 
-// Bucket is a type-safe wrapper around orm.Bucket
-type Bucket struct {
-	orm.IDGenBucket
+func NewBucket() orm.ModelBucket {
+	b := orm.NewModelBucket("swap", &Swap{},
+		orm.WithIDSequence(swapSeq),
+		orm.WithIndex("source", idxSource, false),
+		orm.WithIndex("destination", idxDestination, false),
+		orm.WithIndex("preimage_hash", idxPrehash, false),
+	)
+	return migration.NewModelBucket("aswap", b)
 }
 
-// NewBucket initializes a Bucket with default name
-//
-// inherit Get and Save from orm.Bucket
-// add Create
-func NewBucket() Bucket {
-	bucket := migration.NewBucket("aswap", BucketName,
-		orm.NewSimpleObj(nil, &Swap{})).
-		WithIndex("src", idxSrc, false).
-		WithIndex("recipient", idxRecipient, false).
-		WithIndex("preimage_hash", idxPrehash, false)
+var swapSeq = orm.NewSequence("aswap", "id")
 
-	return Bucket{
-		IDGenBucket: orm.WithSeqIDGenerator(bucket, SequenceName),
-	}
-}
-
-func getSwap(obj orm.Object) (*Swap, error) {
+func toSwap(obj orm.Object) (*Swap, error) {
 	if obj == nil {
 		return nil, errors.Wrap(errors.ErrHuman, "Cannot take index of nil")
 	}
@@ -104,24 +68,24 @@ func getSwap(obj orm.Object) (*Swap, error) {
 	return esc, nil
 }
 
-func idxSrc(obj orm.Object) ([]byte, error) {
-	swp, err := getSwap(obj)
+func idxSource(obj orm.Object) ([]byte, error) {
+	swp, err := toSwap(obj)
 	if err != nil {
 		return nil, err
 	}
-	return swp.Src, nil
+	return swp.Source, nil
 }
 
-func idxRecipient(obj orm.Object) ([]byte, error) {
-	swp, err := getSwap(obj)
+func idxDestination(obj orm.Object) ([]byte, error) {
+	swp, err := toSwap(obj)
 	if err != nil {
 		return nil, err
 	}
-	return swp.Recipient, nil
+	return swp.Destination, nil
 }
 
 func idxPrehash(obj orm.Object) ([]byte, error) {
-	swp, err := getSwap(obj)
+	swp, err := toSwap(obj)
 	if err != nil {
 		return nil, err
 	}

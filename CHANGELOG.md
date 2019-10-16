@@ -1,10 +1,89 @@
 # Changelog
 
 ## HEAD
+- `x/msgfee` was extended to provide a message to set a fee for a given message path.
+`bnscli` and `bnsd` were extended to support this change.
+
+Breaking changes
+
+- `orm` package was updated to no longer rely on `Clone` and `Copy` methods.
+  Models no longer must implement `orm.Cloneable`. Models must implement
+  `orm.Model` interface, which is a subset of `orm.Cloneable`.
+  When creating a new bucket instance a model instance must be provided instead
+  of `orm.SimpleObj`.
+
+## 0.21.2
+- Upgrade tendermint dependency to v0.31.9
+## 0.21.1
+- Let AntispamFeeDecorator handle empty product fee.
+## 0.21.0
+- `x/batch`: increase maximum number of messages to 15
+- `cmd/bnscli`: a new command `mnemonic` was added for generating a random
+  mnemonic as described in BIP-39.
+- `weave.Options`: add an option to stream json for lower memory footprint
+when parsing large json objects.
+- `cmd/bnscli`: when a transaction is submitted, for certain messages parse
+  returned response data and print it in a human readable format.
+- `clean_protos.sh` appends `option go_package = "github.com/iov-one/weave";`
+  to prevent protoc error in weave based frameworks
+- `cmd/bnscli` support for more query endpoints
+- `bnsd/x/username` was updated and now the username validation rules are
+  defined dynamically via gconf powered configuration.
+
+Breaking changes
+
+- `cmd/bnscli`: `keygen` command was updated and requires a mnemonic to
+  generate a key.
+- `orm`: `VersionedIDRef` is now de/serialized by appending BigEndian ID and BigEndian Version
+- `cmd/bnscli`: now expects VersionedIDRef to be serialised using the new format
+
+
+## 0.20.0
+
+- update all extensions to use multi-error for gathering validation errors.
+- add `query` command to the `bnscli` tool
+
+Breaking changes
+
+- `bnsd/x/username`: `iov` is the only valid and accepted domain name for a
+  username. This limitation is forced for the MVP release as we do not have
+  namespace management implemented.
+
+
+## 0.19.0
+
+- Remove `testify` dependency from our tests
+- A new extension `x/cron` is added. It allows to configure weave application
+  to be able to schedule messages for future execution.
+- Proposals created with `x/gov` are having their tally executed automatically
+  after the voting time is over. This is possible thanks to `x/cron` extension.
+- Add `owner` index to bnsd `x/username` to be able to query tokens by owner.
+- Allow empty targets in bnsd `x/username` to enable name reservation.
+- Allow to update election quorum.
+- Add self referencing `address` attribute to entities `aswap.Swap`,
+  `escrow.Contract`, `distribution.Revenue`, `multisig.Contract` `gov.ElectionRule` and
+  `paychan.PaymentChannel`.
+
+Breaking changes
+
+- `weave.Ticker` interface was updated.
+- Add `owner` index to bnsd `x/username` to be able to query tokens by owner.
+- Allow empty targets in bnsd `x/username` to enable name reservation.
+- Username address type in `x/username` extension was changed from `[]byte` to
+  `string`. Instead of base64 encoded value, a valid string is stored as the
+  address.
+- Some of the query paths in the `x/gov` package were updated to follow the
+  naming convention.
+- `gov.TallyMsg` is no longer available. Tally is created automatically when
+  the voting time is over.
+
+
+
+## 0.18.0
 
 - `bnsd/x/username` genesis initializer implemented and included in `bnsd`.
 - Support gov proposal vote, deletion and tally in `bnscli`
-- Support gov proposal text resolution, update electorate, update election rules in `bnscli` 
+- Support gov proposal text resolution, update electorate, update election rules in `bnscli`
 - Added `x/utils.ActionTagger`: all `bnsd` transactions now have
   `action=${msg.Path()}` tags. If there is a batch, there is one tag per
   sub-message. If it is a governance tally, the TallyMsg as well as the
@@ -15,6 +94,10 @@ Breaking changes
 - Unify all message paths to follow pattern `<package>/<message_name>`
 - `app.Router` interface was changed. Handler registration requires a message
   and not message path.
+- Unify all message attribute names
+  - rename `src` and `sender` to `source`
+  - rename `dst` and `recipient` to `destination`
+
 
 ## 0.17.0
 

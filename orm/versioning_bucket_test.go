@@ -10,10 +10,40 @@ import (
 	"github.com/iov-one/weave/errors"
 	"github.com/iov-one/weave/store"
 	"github.com/iov-one/weave/weavetest"
+	"github.com/iov-one/weave/weavetest/assert"
 )
 
+func TestVersionedIDSerialization(t *testing.T) {
+	specs := map[string]struct {
+		src    *VersionedIDRef
+		expErr *errors.Error
+	}{
+		"With zero version": {
+			src: &VersionedIDRef{ID: []byte("anyValue")},
+		},
+		"Version set": {
+			src: &VersionedIDRef{ID: []byte("anyValue"), Version: 2},
+		},
+		"Empty ID": {
+			src:    &VersionedIDRef{ID: nil, Version: 2},
+			expErr: errors.ErrState,
+		},
+	}
+
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			res := MarshalVersionedID(*spec.src)
+			resRef, err := UnmarshalVersionedID(res)
+			assert.IsErr(t, spec.expErr, err)
+			if spec.expErr == nil {
+				assert.Equal(t, *spec.src, resRef)
+			}
+		})
+	}
+}
+
 func TestGetLatestVersion(t *testing.T) {
-	bucketImpl := NewBucket("any", NewSimpleObj(nil, &VersionedIDRef{}))
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
 	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
 	versionedBucket := WithVersioning(idGenBucket)
 	db := store.MemStore()
@@ -46,7 +76,7 @@ func TestGetLatestVersion(t *testing.T) {
 }
 
 func TestCreateWithVersioning(t *testing.T) {
-	bucketImpl := NewBucket("any", NewSimpleObj(nil, &VersionedIDRef{}))
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
 	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
 	versionedBucket := WithVersioning(idGenBucket)
 
@@ -72,10 +102,52 @@ func TestCreateWithVersioning(t *testing.T) {
 			}
 		})
 	}
-
 }
+
+func TestCreateWithIDWithVersioning(t *testing.T) {
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
+	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
+	versionedBucket := WithVersioning(idGenBucket)
+
+	specs := map[string]struct {
+		src    *VersionedIDRef
+		id     []byte
+		expErr *errors.Error
+	}{
+		"Happy path": {
+			src: &VersionedIDRef{ID: []byte("anyValue")},
+			id:  weavetest.SequenceID(1),
+		},
+		"Fails with version set": {
+			src:    &VersionedIDRef{ID: []byte("anyValue"), Version: 1},
+			id:     weavetest.SequenceID(1),
+			expErr: errors.ErrInput,
+		},
+		"Fails with nil id": {
+			src:    &VersionedIDRef{ID: []byte("anyValue"), Version: 1},
+			id:     nil,
+			expErr: errors.ErrEmpty,
+		},
+		"Fails with empty id": {
+			src:    &VersionedIDRef{ID: []byte("anyValue"), Version: 1},
+			id:     make([]byte, 0),
+			expErr: errors.ErrEmpty,
+		},
+	}
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			db := store.MemStore()
+			// when & then
+			_, err := versionedBucket.CreateWithID(db, spec.id, spec.src)
+			if !spec.expErr.Is(err) {
+				t.Fatalf("unexpected error: %+v", err)
+			}
+		})
+	}
+}
+
 func TestUpdateWithVersioning(t *testing.T) {
-	bucketImpl := NewBucket("any", NewSimpleObj(nil, &VersionedIDRef{}))
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
 	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
 	versionedBucket := WithVersioning(idGenBucket)
 
@@ -163,7 +235,7 @@ func TestUpdateWithVersioning(t *testing.T) {
 }
 
 func TestDeleteWithVersioning(t *testing.T) {
-	bucketImpl := NewBucket("any", NewSimpleObj(nil, &VersionedIDRef{}))
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
 	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
 	versionedBucket := WithVersioning(idGenBucket)
 
@@ -231,7 +303,7 @@ func TestDeleteWithVersioning(t *testing.T) {
 }
 
 func TestVersioningExists(t *testing.T) {
-	bucketImpl := NewBucket("any", NewSimpleObj(nil, &VersionedIDRef{}))
+	bucketImpl := NewBucket("any", &VersionedIDRef{})
 	idGenBucket := WithSeqIDGenerator(bucketImpl, "id")
 	versionedBucket := WithVersioning(idGenBucket)
 

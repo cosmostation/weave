@@ -17,12 +17,12 @@ func (pc *PaymentChannel) Validate() error {
 	var errs error
 
 	errs = errors.AppendField(errs, "Metadata", pc.Metadata.Validate())
-	errs = errors.AppendField(errs, "Src", pc.Src.Validate())
-	if pc.SenderPubkey == nil {
+	errs = errors.AppendField(errs, "Source", pc.Source.Validate())
+	if pc.SourcePubkey == nil {
 		errs = errors.Append(errs,
-			errors.Field("SenderPubKey", errors.ErrModel, "missing sender public key"))
+			errors.Field("SourcePubKey", errors.ErrModel, "missing source public key"))
 	}
-	errs = errors.AppendField(errs, "recipient", pc.Recipient.Validate())
+	errs = errors.AppendField(errs, "destination", pc.Destination.Validate())
 	if err := pc.Timeout.Validate(); err != nil {
 		errs = errors.AppendField(errs, "Timeout", err)
 	} else if pc.Timeout < inThePast {
@@ -45,30 +45,22 @@ func (pc *PaymentChannel) Validate() error {
 			errors.Field("Transferred", errors.ErrModel, "invalid transferred value"))
 	}
 
-	return errs
-}
-
-// Copy returns a deep copy of this PaymentChannel.
-func (pc PaymentChannel) Copy() orm.CloneableData {
-	return &PaymentChannel{
-		Metadata:     pc.Metadata.Copy(),
-		Src:          pc.Src.Clone(),
-		SenderPubkey: pc.SenderPubkey,
-		Recipient:    pc.Recipient.Clone(),
-		Total:        pc.Total.Clone(),
-		Timeout:      pc.Timeout,
-		Memo:         pc.Memo,
-		Transferred:  pc.Transferred.Clone(),
+	if err := pc.Address.Validate(); err != nil {
+		errs = errors.AppendField(errs, "Address", err)
 	}
+
+	return errs
 }
 
 // NewPaymentChannelBucket returns a bucket for storing PaymentChannel state.
 func NewPaymentChannelBucket() orm.ModelBucket {
-	b := orm.NewModelBucket("paychan", &PaymentChannel{})
+	b := orm.NewModelBucket("paychan", &PaymentChannel{},
+		orm.WithIDSequence(paymentChannelSeq))
 	return migration.NewModelBucket("paychan", b)
 }
 
+var paymentChannelSeq = orm.NewSequence("paychan", "id")
+
 func newPaymentChannelObjectBucket() orm.Bucket {
-	obj := orm.NewSimpleObj(nil, &PaymentChannel{})
-	return orm.NewBucket("paychan", obj)
+	return orm.NewBucket("paychan", &PaymentChannel{})
 }

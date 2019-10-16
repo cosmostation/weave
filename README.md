@@ -21,7 +21,6 @@ to your project.
 
 Join the Weave [community channel](https://riot.im/app/#/room/#weave:matrix.org) :loudspeaker:
 
-
 **Note: Requires Go 1.11.4+**
 
 It is inspired by the routing and middleware model of many web
@@ -54,7 +53,10 @@ For more details on the design goals, see the
 ## Prerequisites
 
 * [golang 1.11.4+](https://golang.org/doc/install)
-
+* [docker](https://docs.docker.com/install/)
+* [tendermint 0.31.5](https://github.com/tendermint/tendermint/tree/v0.31.5)
+  * [Installation](https://github.com/tendermint/tendermint/blob/master/docs/introduction/install.md)
+  
 ## Instructions
 
 First, make sure you have
@@ -65,8 +67,8 @@ but good to go through it to be sure.
 Once you are set up, you should be able to run something
 like the following to compile both `bnsd` (IOV blockchain application)
 and `bnscli` (a client side app to interact with `bnsd`).
-You will have to 
-[install a compatible version of tendermint](https://github.com/tendermint/tendermint/blob/master/docs/introduction/install.md) 
+You will have to
+[install a compatible version of tendermint](https://github.com/tendermint/tendermint/blob/master/docs/introduction/install.md)
 separately. (Currently we use the v0.31.5 release).
 
 ```
@@ -85,32 +87,9 @@ as well as the documentation on the
 Once it compiles, I highly suggest going through the
 [readthedocs](https://weave.readthedocs.io/en/latest)
 
-## Compatibility Charts
+## Compatibility
 
-| Weave | Tendermint |
-|--------|-----------|
-|v0.15.x | v0.31.5|
-|v0.14.x | v0.29.1|
-|v0.13.0 | v0.29.1|
-|v0.12.0 | v0.29.1|
-|v0.11.1 | v0.29.1|
-|v0.11.0 | v0.27.4|
-|v0.10.x | v0.27.4|
-|v0.9.3	| v0.25.0|
-
-| Weave | Protobuf compatible to previous version| Comments |
-|--------|--------------------|------------------|
-|v0.15.0 | :x:| See [CHANGELOG for 0.15.0](https://github.com/iov-one/weave/blob/master/CHANGELOG.md#0150) |
-|v0.14.0 | :x:| See [CHANGELOG for 0.14.0](https://github.com/iov-one/weave/blob/master/CHANGELOG.md#0140) |
-|v0.13.0 | :x:| Changes in `x/multisig` - signer weights added. |
-|v0.12.1 | :x:| Changes in `x/escrow` - wall clock timeout implemented. |
-|v0.12.0 | :x:| Currency no longer supports supplying SigFigs nor returns them. |
-|v0.11.1 | :heavy_check_mark:| |
-|v0.11.0 | :heavy_check_mark:| |
-|v0.10.2 | :heavy_check_mark:| |
-|v0.10.1 | :x:| |
-|v0.10.0 | :x:| |
-|v0.9.3	| :heavy_check_mark:| |
+Check out [compatibility charts](./COMPATIBILITY.md)
 
 ## Protobuf Documentation
 
@@ -121,15 +100,16 @@ You can view the [documentation for all packages used in the `bns` app](http://h
 Or generate it yourself:
 
 ```shell
-make prototools
 make protodocs
 open ./docs/proto/index.html
 ```
 
 ## Contributions
-When opening a PR with a minor fix that does not need a CHANGELOG.md entry
-make sure to add `#trivial` to the title/description of said PR.  
-That's only needed if you are changing any of the `*.go` files in the repo.
+
+When opening a pull request with a change that does not require a CHANGELOG
+entry, include `!nochangelog` in the description. This will inform our build
+system to not fail the build due to a missing CHANGELOG update. This
+instruction is needed only if you are changing any of the Go source files.
 
 ## History
 

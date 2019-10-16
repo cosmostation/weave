@@ -3,24 +3,22 @@ package weave
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/iov-one/weave/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/iov-one/weave/weavetest/assert"
 )
 
 func TestHex(t *testing.T) {
-	cases := []struct {
+	cases := map[string]struct {
 		orig    []byte
 		ser     string
 		invalid string
 	}{
-		{[]byte{01, 02}, `"0102"`, `"012"`},
-		{[]byte{0xFF, 0x14, 0x56}, `"FF1456"`, `FF1456`},
-		{[]byte{}, `""`, `"`},
+		"decimal": {[]byte{01, 02}, `"0102"`, `"012"`},
+		"hex":     {[]byte{0xFF, 0x14, 0x56}, `"FF1456"`, `FF1456`},
+		"empty":   {[]byte{}, `""`, `"`},
 	}
 
 	unmarshalHex := func(bz []byte, out *[]byte) (err error) {
@@ -44,23 +42,23 @@ func TestHex(t *testing.T) {
 		return json.Marshal(s)
 	}
 
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+	for testName, tc := range cases {
+		t.Run(testName, func(t *testing.T) {
 			// marshal as expected
 			bz, err := marshalHex(tc.orig)
-			require.NoError(t, err)
+			assert.Nil(t, err)
 			ser := []byte(tc.ser)
 			assert.Equal(t, ser, bz)
 
 			// properly parse
 			in := []byte{}
 			err = unmarshalHex(ser, &in)
-			require.NoError(t, err)
+			assert.Nil(t, err)
 			assert.Equal(t, tc.orig, in)
 
 			// failure returns error and doesn't affect input
 			err = unmarshalHex([]byte(tc.invalid), &in)
-			assert.Error(t, err)
+			assert.Equal(t, true, err != nil)
 			assert.Equal(t, tc.orig, in)
 		})
 	}
@@ -68,34 +66,34 @@ func TestHex(t *testing.T) {
 
 func TestAddress(t *testing.T) {
 	bad := Address{1, 3, 5}
-	assert.Error(t, bad.Validate())
+	assert.Equal(t, true, bad.Validate() != nil)
 
 	// creating address
 	bz := []byte("bling")
 	addr := NewAddress(bz)
-	assert.NoError(t, addr.Validate())
-	assert.False(t, addr.Equals(bz))
-	assert.False(t, addr.Equals(bad))
+	assert.Nil(t, addr.Validate())
+	assert.Equal(t, false, addr.Equals(bz))
+	assert.Equal(t, false, addr.Equals(bad))
 
 	// marshalling
 	foo := addr.String()
 	assert.Equal(t, 2*AddressLength, len(foo))
 	ser, err := addr.MarshalJSON()
-	require.NoError(t, err)
+	assert.Nil(t, err)
 	addr3 := Address{}
 	err = addr3.UnmarshalJSON(ser)
-	require.NoError(t, err)
-	assert.True(t, addr.Equals(addr3))
+	assert.Nil(t, err)
+	assert.Equal(t, true, addr.Equals(addr3))
 }
 
 func TestCondition(t *testing.T) {
 	other := NewCondition("some", "such", []byte("data"))
 	failure, err := hex.DecodeString("736967732F656432353531392F16E290A51B2B136C2C213884D03B8BAE483D6133F0A3D110FED3890E0A5A4E18")
-	require.NoError(t, err)
+	assert.Nil(t, err)
 	data, err := hex.DecodeString("16E290A51B2B136C2C213884D03B8BAE483D6133F0A3D110FED3890E0A5A4E18")
-	require.NoError(t, err)
+	assert.Nil(t, err)
 
-	cases := []struct {
+	cases := map[string]struct {
 		perm    Condition
 		isError bool
 		ext     string
@@ -103,16 +101,13 @@ func TestCondition(t *testing.T) {
 		data    []byte
 		serial  string
 	}{
-		// bad format
-		{
+		"bad format without data separator": {
 			[]byte("fo6/ds2qa"), true, "", "", nil, "",
 		},
-		// bad format
-		{
+		"invalid ext format": {
 			NewCondition("a.b", "dfr", []byte{34}), true, "", "", nil, "",
 		},
-		// good format
-		{
+		"good format": {
 			[]byte("Foo/B4r/BZZ"),
 			false,
 			"Foo",
@@ -120,8 +115,7 @@ func TestCondition(t *testing.T) {
 			[]byte("BZZ"),
 			"Foo/B4r/425A5A",
 		},
-		// non-ascii data
-		{
+		"non-ascii data": {
 			NewCondition("help", "W1N", []byte{0xCA, 0xFE}),
 			false,
 			"help",
@@ -131,7 +125,7 @@ func TestCondition(t *testing.T) {
 		},
 		// some weird failure from random test case
 		// turns out to do with 0xa (newline) character in data
-		{
+		"including newline character": {
 			failure,
 			false,
 			"sigs",
@@ -141,30 +135,30 @@ func TestCondition(t *testing.T) {
 		},
 	}
 
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+	for testName, tc := range cases {
+		t.Run(testName, func(t *testing.T) {
 			ext, typ, data, err := tc.perm.Parse()
 			if tc.isError {
-				require.Error(t, err)
-				require.Error(t, tc.perm.Validate())
+				assert.Equal(t, true, err != nil)
+				assert.Equal(t, true, tc.perm.Validate() != nil)
 				return
 			}
 			// make sure parse matches
-			require.NoError(t, err)
-			require.NoError(t, tc.perm.Validate())
+			assert.Nil(t, err)
+			assert.Nil(t, tc.perm.Validate())
 			assert.Equal(t, tc.ext, ext)
 			assert.Equal(t, tc.typ, typ)
 			assert.Equal(t, tc.data, data)
 
 			// equal should pass with proper bytes
 			cp := NewCondition(ext, typ, data)
-			assert.True(t, tc.perm.Equals(cp))
+			assert.Equal(t, true, tc.perm.Equals(cp))
 
 			// doesn't match arbitrary other permission
-			assert.False(t, tc.perm.Equals(other))
+			assert.Equal(t, false, tc.perm.Equals(other))
 			addr := tc.perm.Address()
-			assert.NoError(t, addr.Validate())
-			assert.NotEqual(t, addr, other.Address())
+			assert.Nil(t, addr.Validate())
+			assert.Equal(t, false, other.Address().Equals(addr))
 
 			// make sure we get expected string
 			assert.Equal(t, tc.serial, tc.perm.String())

@@ -109,7 +109,10 @@ type BlockchainAddress struct {
 	// chain that this token instance links to. Because we do not know the rules
 	// to validate an address for any blockchain ID, this is an arbitrary bulk of
 	// data.
-	Address []byte `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	// It is more convinient to always use encoded representation of each address
+	// and store it as a string. Using bytes while compact is not as comfortable
+	// to use.
+	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 }
 
 func (m *BlockchainAddress) Reset()         { *m = BlockchainAddress{} }
@@ -152,11 +155,11 @@ func (m *BlockchainAddress) GetBlockchainID() string {
 	return ""
 }
 
-func (m *BlockchainAddress) GetAddress() []byte {
+func (m *BlockchainAddress) GetAddress() string {
 	if m != nil {
 		return m.Address
 	}
-	return nil
+	return ""
 }
 
 // RegisterTokenMsg is creating a new username token. The owner is always set
@@ -164,7 +167,7 @@ func (m *BlockchainAddress) GetAddress() []byte {
 type RegisterTokenMsg struct {
 	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Username is the unique name of the token, for example alice*iov
-	Username Username `protobuf:"bytes,2,opt,name=username,proto3,casttype=Username" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// Targets is a blockchain address list that this token should point to.
 	Targets []BlockchainAddress `protobuf:"bytes,3,rep,name=targets,proto3" json:"targets"`
 }
@@ -209,7 +212,7 @@ func (m *RegisterTokenMsg) GetMetadata() *weave.Metadata {
 	return nil
 }
 
-func (m *RegisterTokenMsg) GetUsername() Username {
+func (m *RegisterTokenMsg) GetUsername() string {
 	if m != nil {
 		return m.Username
 	}
@@ -229,7 +232,7 @@ func (m *RegisterTokenMsg) GetTargets() []BlockchainAddress {
 type TransferTokenMsg struct {
 	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Username is the unique name of the token, for example alice*iov
-	Username Username `protobuf:"bytes,2,opt,name=username,proto3,casttype=Username" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// Owner is a weave address that will owns this token after the change.
 	NewOwner github_com_iov_one_weave.Address `protobuf:"bytes,3,opt,name=new_owner,json=newOwner,proto3,casttype=github.com/iov-one/weave.Address" json:"new_owner,omitempty"`
 }
@@ -274,7 +277,7 @@ func (m *TransferTokenMsg) GetMetadata() *weave.Metadata {
 	return nil
 }
 
-func (m *TransferTokenMsg) GetUsername() Username {
+func (m *TransferTokenMsg) GetUsername() string {
 	if m != nil {
 		return m.Username
 	}
@@ -293,7 +296,7 @@ func (m *TransferTokenMsg) GetNewOwner() github_com_iov_one_weave.Address {
 type ChangeTokenTargetsMsg struct {
 	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Username is the unique name of the token, for example alice*iov
-	Username Username `protobuf:"bytes,2,opt,name=username,proto3,casttype=Username" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// New targets is a list of blockchain addresses that this token should point
 	// to after the change. Old list is overwritten with what is provided.
 	NewTargets []BlockchainAddress `protobuf:"bytes,3,rep,name=new_targets,json=newTargets,proto3" json:"new_targets"`
@@ -339,7 +342,7 @@ func (m *ChangeTokenTargetsMsg) GetMetadata() *weave.Metadata {
 	return nil
 }
 
-func (m *ChangeTokenTargetsMsg) GetUsername() Username {
+func (m *ChangeTokenTargetsMsg) GetUsername() string {
 	if m != nil {
 		return m.Username
 	}
@@ -353,44 +356,182 @@ func (m *ChangeTokenTargetsMsg) GetNewTargets() []BlockchainAddress {
 	return nil
 }
 
+// Configuration is a dynamic configuration used by this extension, managed by
+// the functionality provided by gconf package.
+type Configuration struct {
+	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// Owner is present to implement gconf.OwnedConfig interface
+	// This defines the Address that is allowed to update the Configuration object and is
+	// needed to make use of gconf.NewUpdateConfigurationHandler
+	Owner github_com_iov_one_weave.Address `protobuf:"bytes,2,opt,name=owner,proto3,casttype=github.com/iov-one/weave.Address" json:"owner,omitempty"`
+	// Valid username name defines a regular expression that every valid username
+	// part name must match (a username is <name>*<label>)
+	ValidUsernameName string `protobuf:"bytes,3,opt,name=valid_username_name,json=validUsernameName,proto3" json:"valid_username_name,omitempty"`
+	// Valid username label defines a regular expression that every valid
+	// namespace label must match (a username is <name>*<label>)
+	ValidUsernameLabel string `protobuf:"bytes,4,opt,name=valid_username_label,json=validUsernameLabel,proto3" json:"valid_username_label,omitempty"`
+}
+
+func (m *Configuration) Reset()         { *m = Configuration{} }
+func (m *Configuration) String() string { return proto.CompactTextString(m) }
+func (*Configuration) ProtoMessage()    {}
+func (*Configuration) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5d21e3852038e86f, []int{5}
+}
+func (m *Configuration) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Configuration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Configuration.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Configuration) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Configuration.Merge(m, src)
+}
+func (m *Configuration) XXX_Size() int {
+	return m.Size()
+}
+func (m *Configuration) XXX_DiscardUnknown() {
+	xxx_messageInfo_Configuration.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Configuration proto.InternalMessageInfo
+
+func (m *Configuration) GetMetadata() *weave.Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+func (m *Configuration) GetOwner() github_com_iov_one_weave.Address {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *Configuration) GetValidUsernameName() string {
+	if m != nil {
+		return m.ValidUsernameName
+	}
+	return ""
+}
+
+func (m *Configuration) GetValidUsernameLabel() string {
+	if m != nil {
+		return m.ValidUsernameLabel
+	}
+	return ""
+}
+
+// UpdateConfigurationMsg is used by the gconf extension to update the
+// configuration.
+type UpdateConfigurationMsg struct {
+	Metadata *weave.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Patch    *Configuration  `protobuf:"bytes,2,opt,name=patch,proto3" json:"patch,omitempty"`
+}
+
+func (m *UpdateConfigurationMsg) Reset()         { *m = UpdateConfigurationMsg{} }
+func (m *UpdateConfigurationMsg) String() string { return proto.CompactTextString(m) }
+func (*UpdateConfigurationMsg) ProtoMessage()    {}
+func (*UpdateConfigurationMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5d21e3852038e86f, []int{6}
+}
+func (m *UpdateConfigurationMsg) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *UpdateConfigurationMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_UpdateConfigurationMsg.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *UpdateConfigurationMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateConfigurationMsg.Merge(m, src)
+}
+func (m *UpdateConfigurationMsg) XXX_Size() int {
+	return m.Size()
+}
+func (m *UpdateConfigurationMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateConfigurationMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateConfigurationMsg proto.InternalMessageInfo
+
+func (m *UpdateConfigurationMsg) GetMetadata() *weave.Metadata {
+	if m != nil {
+		return m.Metadata
+	}
+	return nil
+}
+
+func (m *UpdateConfigurationMsg) GetPatch() *Configuration {
+	if m != nil {
+		return m.Patch
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Token)(nil), "username.Token")
 	proto.RegisterType((*BlockchainAddress)(nil), "username.BlockchainAddress")
 	proto.RegisterType((*RegisterTokenMsg)(nil), "username.RegisterTokenMsg")
 	proto.RegisterType((*TransferTokenMsg)(nil), "username.TransferTokenMsg")
 	proto.RegisterType((*ChangeTokenTargetsMsg)(nil), "username.ChangeTokenTargetsMsg")
+	proto.RegisterType((*Configuration)(nil), "username.Configuration")
+	proto.RegisterType((*UpdateConfigurationMsg)(nil), "username.UpdateConfigurationMsg")
 }
 
 func init() { proto.RegisterFile("cmd/bnsd/x/username/codec.proto", fileDescriptor_5d21e3852038e86f) }
 
 var fileDescriptor_5d21e3852038e86f = []byte{
-	// 403 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x93, 0xcf, 0xae, 0x93, 0x40,
-	0x14, 0xc6, 0x99, 0x5b, 0xaf, 0x97, 0x0e, 0x18, 0x2b, 0xd1, 0x84, 0x5c, 0x13, 0x20, 0xc4, 0x05,
-	0x89, 0x11, 0x92, 0x6b, 0xdc, 0xe8, 0xea, 0xa2, 0x9b, 0x2e, 0x1a, 0x13, 0x52, 0xd7, 0xcd, 0xc0,
-	0x1c, 0x29, 0xa9, 0xcc, 0x18, 0x86, 0x16, 0x1f, 0xc3, 0xa7, 0x70, 0xa5, 0x1b, 0x9f, 0xa2, 0xcb,
-	0x2e, 0x5d, 0x11, 0x43, 0xdf, 0xa2, 0x2b, 0x53, 0xfe, 0xb5, 0x89, 0x2b, 0x16, 0xdd, 0x1d, 0x3e,
-	0xce, 0xf9, 0xce, 0x8f, 0xef, 0x04, 0x6c, 0x46, 0x29, 0xf5, 0x42, 0x26, 0xa8, 0xf7, 0xcd, 0x5b,
-	0x0b, 0xc8, 0x18, 0x49, 0xc1, 0x8b, 0x38, 0x85, 0xc8, 0xfd, 0x9a, 0xf1, 0x9c, 0x6b, 0x72, 0xa7,
-	0xde, 0x2a, 0x67, 0xf2, 0xed, 0xd3, 0x98, 0xc7, 0xbc, 0x2e, 0xbd, 0x63, 0xd5, 0xa8, 0xf6, 0x2f,
-	0x84, 0xaf, 0xe7, 0x7c, 0x05, 0x4c, 0x7b, 0x89, 0xe5, 0x14, 0x72, 0x42, 0x49, 0x4e, 0x74, 0x64,
-	0x21, 0x47, 0xb9, 0x7b, 0xec, 0x16, 0x40, 0x36, 0xe0, 0xce, 0x5a, 0x39, 0xe8, 0x1b, 0xb4, 0x77,
-	0xf8, 0x26, 0x27, 0x59, 0x0c, 0xb9, 0xd0, 0xaf, 0xac, 0x91, 0xa3, 0xdc, 0x3d, 0x77, 0xbb, 0xad,
-	0xae, 0xff, 0x85, 0x47, 0xab, 0x68, 0x49, 0x12, 0x76, 0x4f, 0x69, 0x06, 0x42, 0xf8, 0x0f, 0xb6,
-	0xa5, 0x29, 0x05, 0xdd, 0x84, 0xf6, 0x16, 0x5f, 0xf3, 0x82, 0x41, 0xa6, 0x8f, 0x2c, 0xe4, 0xa8,
-	0xfe, 0x8b, 0x43, 0x69, 0x5a, 0x71, 0x92, 0x2f, 0xd7, 0xa1, 0x1b, 0xf1, 0xd4, 0x4b, 0xf8, 0xe6,
-	0x15, 0x67, 0xe0, 0x35, 0xcb, 0x5b, 0x8f, 0xa0, 0x19, 0xb1, 0x29, 0x7e, 0xf2, 0x9f, 0xbf, 0xf6,
-	0x06, 0x3f, 0x0a, 0x7b, 0x71, 0x91, 0xd0, 0x9a, 0x7f, 0xec, 0x4f, 0xaa, 0xd2, 0x54, 0x4f, 0xdd,
-	0xd3, 0x0f, 0x81, 0x7a, 0x6a, 0x9b, 0x52, 0x4d, 0xc7, 0x37, 0xa4, 0x71, 0xd0, 0xaf, 0x8e, 0x24,
-	0x41, 0xf7, 0x68, 0xff, 0x40, 0x78, 0x12, 0x40, 0x9c, 0x88, 0x1c, 0xb2, 0x3a, 0x9d, 0x99, 0x88,
-	0x87, 0x05, 0xe4, 0xe0, 0xfe, 0x0c, 0xb5, 0xf9, 0xd8, 0x57, 0x0f, 0xa5, 0x29, 0x7f, 0x6a, 0xb5,
-	0xa0, 0x7f, 0x7b, 0x1e, 0xe5, 0x68, 0x68, 0x94, 0xf6, 0x4f, 0x84, 0x27, 0xf3, 0x8c, 0x30, 0xf1,
-	0xf9, 0xf2, 0xa0, 0xf7, 0x78, 0xcc, 0xa0, 0x58, 0x0c, 0x3f, 0x9d, 0xcc, 0xa0, 0xf8, 0x58, 0x5f,
-	0xef, 0x37, 0xc2, 0xcf, 0xde, 0x2f, 0x09, 0x8b, 0xa1, 0x86, 0x9d, 0x37, 0x5f, 0x71, 0x41, 0x66,
-	0x1f, 0x2b, 0x47, 0xe6, 0xc1, 0x01, 0x63, 0x06, 0x45, 0x4b, 0xe7, 0xeb, 0xdb, 0xca, 0x40, 0xbb,
-	0xca, 0x40, 0x7f, 0x2b, 0x03, 0x7d, 0xdf, 0x1b, 0xd2, 0x6e, 0x6f, 0x48, 0x7f, 0xf6, 0x86, 0x14,
-	0x3e, 0xac, 0xff, 0xa1, 0xd7, 0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0x1d, 0x2a, 0x26, 0x7f, 0x93,
-	0x03, 0x00, 0x00,
+	// 492 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0xbf, 0x6f, 0xd3, 0x40,
+	0x14, 0xce, 0x25, 0x0d, 0x4d, 0x5f, 0x52, 0x91, 0x9a, 0x02, 0x56, 0x90, 0x9c, 0xc8, 0x62, 0x88,
+	0x84, 0x6a, 0xa3, 0x20, 0x16, 0x98, 0xea, 0xb2, 0x54, 0xa2, 0x20, 0x59, 0xe9, 0x1c, 0x5d, 0x7c,
+	0xaf, 0x8e, 0xd5, 0xe4, 0x2e, 0xb2, 0x2f, 0x31, 0x7f, 0x06, 0x23, 0x13, 0x13, 0x2b, 0xff, 0x47,
+	0xc7, 0x8e, 0x88, 0x21, 0x42, 0xc9, 0x7f, 0xc1, 0x84, 0x7c, 0xfe, 0x91, 0x06, 0x26, 0x4b, 0x74,
+	0xbb, 0x7b, 0xf7, 0xbe, 0xef, 0xbe, 0xef, 0x7b, 0x67, 0x43, 0xd7, 0x9b, 0x31, 0x7b, 0xcc, 0x23,
+	0x66, 0x7f, 0xb2, 0x17, 0x11, 0x86, 0x9c, 0xce, 0xd0, 0xf6, 0x04, 0x43, 0xcf, 0x9a, 0x87, 0x42,
+	0x0a, 0xad, 0x91, 0x57, 0x3b, 0xcd, 0x3b, 0xe5, 0xce, 0xb1, 0x2f, 0x7c, 0xa1, 0x96, 0x76, 0xb2,
+	0x4a, 0xab, 0xe6, 0x77, 0x02, 0xf5, 0xa1, 0xb8, 0x46, 0xae, 0xbd, 0x80, 0xc6, 0x0c, 0x25, 0x65,
+	0x54, 0x52, 0x9d, 0xf4, 0x48, 0xbf, 0x39, 0x78, 0x68, 0xc5, 0x48, 0x97, 0x68, 0x5d, 0x64, 0x65,
+	0xb7, 0x68, 0xd0, 0xde, 0xc2, 0xbe, 0xa4, 0xa1, 0x8f, 0x32, 0xd2, 0xab, 0xbd, 0x5a, 0xbf, 0x39,
+	0x78, 0x66, 0xe5, 0xb7, 0x5a, 0xce, 0x54, 0x78, 0xd7, 0xde, 0x84, 0x06, 0xfc, 0x94, 0xb1, 0x10,
+	0xa3, 0xc8, 0xd9, 0xbb, 0x59, 0x75, 0x2b, 0x6e, 0x8e, 0xd0, 0xde, 0x40, 0x5d, 0xc4, 0x1c, 0x43,
+	0xbd, 0xd6, 0x23, 0xfd, 0x96, 0xf3, 0xfc, 0xf7, 0xaa, 0xdb, 0xf3, 0x03, 0x39, 0x59, 0x8c, 0x2d,
+	0x4f, 0xcc, 0xec, 0x40, 0x2c, 0x4f, 0x04, 0x47, 0x3b, 0xbd, 0x3c, 0xe3, 0x70, 0x53, 0x88, 0xc9,
+	0xe0, 0xe8, 0x1f, 0x7e, 0xed, 0x35, 0x1c, 0x8e, 0x8b, 0xe2, 0x28, 0x60, 0x4a, 0xff, 0x81, 0xd3,
+	0x5e, 0xaf, 0xba, 0xad, 0x6d, 0xf7, 0xf9, 0x3b, 0xb7, 0xb5, 0x6d, 0x3b, 0x67, 0x9a, 0x0e, 0xfb,
+	0x34, 0x65, 0xd0, 0xab, 0x09, 0xc0, 0xcd, 0xb7, 0xe6, 0x17, 0x02, 0x6d, 0x17, 0xfd, 0x20, 0x92,
+	0x18, 0xaa, 0x74, 0x2e, 0x22, 0xbf, 0x5c, 0x40, 0x1d, 0x28, 0xc6, 0x90, 0x91, 0x17, 0xfb, 0xbb,
+	0xe1, 0xd5, 0xca, 0x86, 0x67, 0x7e, 0x25, 0xd0, 0x1e, 0x86, 0x94, 0x47, 0x57, 0xf7, 0x21, 0xed,
+	0x14, 0x0e, 0x38, 0xc6, 0xa3, 0xf2, 0xe3, 0x69, 0x70, 0x8c, 0x3f, 0xaa, 0x09, 0x7d, 0x23, 0xf0,
+	0xf8, 0x6c, 0x42, 0xb9, 0x8f, 0x4a, 0xde, 0x30, 0xd5, 0xfd, 0x5f, 0x55, 0x3a, 0xd0, 0x4c, 0x54,
+	0x96, 0x0e, 0x11, 0x38, 0xc6, 0x99, 0x1e, 0xf3, 0x27, 0x81, 0xc3, 0x33, 0xc1, 0xaf, 0x02, 0x7f,
+	0x11, 0x52, 0x19, 0x88, 0x92, 0x1f, 0x40, 0xf1, 0x86, 0xab, 0xa5, 0xdf, 0xb0, 0x66, 0xc1, 0xa3,
+	0x25, 0x9d, 0x06, 0x6c, 0x94, 0x0b, 0x1e, 0x29, 0x97, 0x35, 0xe5, 0xf2, 0x48, 0x1d, 0x5d, 0x66,
+	0x27, 0x1f, 0x12, 0xbb, 0x2f, 0xe1, 0xf8, 0xaf, 0xfe, 0x29, 0x1d, 0xe3, 0x54, 0xdf, 0x53, 0x00,
+	0x6d, 0x07, 0xf0, 0x3e, 0x39, 0x31, 0x25, 0x3c, 0xb9, 0x9c, 0x33, 0x2a, 0x71, 0xc7, 0x61, 0xe9,
+	0x19, 0x9c, 0x40, 0x7d, 0x4e, 0xa5, 0x37, 0x51, 0x26, 0x9b, 0x83, 0xa7, 0xdb, 0x84, 0x77, 0x78,
+	0xdd, 0xb4, 0xcb, 0xd1, 0x6f, 0xd6, 0x06, 0xb9, 0x5d, 0x1b, 0xe4, 0xd7, 0xda, 0x20, 0x9f, 0x37,
+	0x46, 0xe5, 0x76, 0x63, 0x54, 0x7e, 0x6c, 0x8c, 0xca, 0xf8, 0x81, 0xfa, 0xd9, 0xbc, 0xfa, 0x13,
+	0x00, 0x00, 0xff, 0xff, 0x48, 0xb8, 0x85, 0xc2, 0xbc, 0x04, 0x00, 0x00,
 }
 
 func (m *Token) Marshal() (dAtA []byte, err error) {
@@ -601,6 +742,90 @@ func (m *ChangeTokenTargetsMsg) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *Configuration) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Configuration) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.Metadata.Size()))
+		n5, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if len(m.Owner) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.Owner)))
+		i += copy(dAtA[i:], m.Owner)
+	}
+	if len(m.ValidUsernameName) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.ValidUsernameName)))
+		i += copy(dAtA[i:], m.ValidUsernameName)
+	}
+	if len(m.ValidUsernameLabel) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(len(m.ValidUsernameLabel)))
+		i += copy(dAtA[i:], m.ValidUsernameLabel)
+	}
+	return i, nil
+}
+
+func (m *UpdateConfigurationMsg) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpdateConfigurationMsg) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.Metadata.Size()))
+		n6, err := m.Metadata.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	if m.Patch != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintCodec(dAtA, i, uint64(m.Patch.Size()))
+		n7, err := m.Patch.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n7
+	}
+	return i, nil
+}
+
 func encodeVarintCodec(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -713,6 +938,48 @@ func (m *ChangeTokenTargetsMsg) Size() (n int) {
 			l = e.Size()
 			n += 1 + l + sovCodec(uint64(l))
 		}
+	}
+	return n
+}
+
+func (m *Configuration) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovCodec(uint64(l))
+	}
+	l = len(m.Owner)
+	if l > 0 {
+		n += 1 + l + sovCodec(uint64(l))
+	}
+	l = len(m.ValidUsernameName)
+	if l > 0 {
+		n += 1 + l + sovCodec(uint64(l))
+	}
+	l = len(m.ValidUsernameLabel)
+	if l > 0 {
+		n += 1 + l + sovCodec(uint64(l))
+	}
+	return n
+}
+
+func (m *UpdateConfigurationMsg) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Metadata != nil {
+		l = m.Metadata.Size()
+		n += 1 + l + sovCodec(uint64(l))
+	}
+	if m.Patch != nil {
+		l = m.Patch.Size()
+		n += 1 + l + sovCodec(uint64(l))
 	}
 	return n
 }
@@ -952,7 +1219,7 @@ func (m *BlockchainAddress) Unmarshal(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
 			}
-			var byteLen int
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowCodec
@@ -962,25 +1229,23 @@ func (m *BlockchainAddress) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
 				return ErrInvalidLengthCodec
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
 				return ErrInvalidLengthCodec
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Address = append(m.Address[:0], dAtA[iNdEx:postIndex]...)
-			if m.Address == nil {
-				m.Address = []byte{}
-			}
+			m.Address = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1101,7 +1366,7 @@ func (m *RegisterTokenMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Username = Username(dAtA[iNdEx:postIndex])
+			m.Username = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -1256,7 +1521,7 @@ func (m *TransferTokenMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Username = Username(dAtA[iNdEx:postIndex])
+			m.Username = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -1411,7 +1676,7 @@ func (m *ChangeTokenTargetsMsg) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Username = Username(dAtA[iNdEx:postIndex])
+			m.Username = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -1444,6 +1709,318 @@ func (m *ChangeTokenTargetsMsg) Unmarshal(dAtA []byte) error {
 			}
 			m.NewTargets = append(m.NewTargets, BlockchainAddress{})
 			if err := m.NewTargets[len(m.NewTargets)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCodec(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Configuration) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCodec
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Configuration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Configuration: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &weave.Metadata{}
+			}
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Owner", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Owner = append(m.Owner[:0], dAtA[iNdEx:postIndex]...)
+			if m.Owner == nil {
+				m.Owner = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidUsernameName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidUsernameName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidUsernameLabel", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidUsernameLabel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCodec(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UpdateConfigurationMsg) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCodec
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpdateConfigurationMsg: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpdateConfigurationMsg: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &weave.Metadata{}
+			}
+			if err := m.Metadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Patch", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCodec
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCodec
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCodec
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Patch == nil {
+				m.Patch = &Configuration{}
+			}
+			if err := m.Patch.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -17,39 +17,35 @@ type Initializer struct {
 // FromGenesis will parse initial escrow  info from genesis and save it in the database.
 func (i *Initializer) FromGenesis(opts weave.Options, params weave.GenesisParams, kv weave.KVStore) error {
 	var escrows []struct {
-		Sender    weave.Address  `json:"sender"`
-		Arbiter   weave.Address  `json:"arbiter"`
-		Recipient weave.Address  `json:"recipient"`
-		Timeout   weave.UnixTime `json:"timeout"`
-		Amount    []*coin.Coin   `json:"amount"`
+		Source      weave.Address  `json:"source"`
+		Arbiter     weave.Address  `json:"arbiter"`
+		Destination weave.Address  `json:"destination"`
+		Timeout     weave.UnixTime `json:"timeout"`
+		Amount      []*coin.Coin   `json:"amount"`
 	}
 
 	if err := opts.ReadOptions("escrow", &escrows); err != nil {
 		return err
 	}
 	bucket := NewBucket()
-	for j, e := range escrows {
-		escr := Escrow{
-			Metadata:  &weave.Metadata{Schema: 1},
-			Sender:    e.Sender,
-			Arbiter:   e.Arbiter,
-			Recipient: e.Recipient,
-			Timeout:   e.Timeout,
-		}
-
-		if err := escr.Validate(); err != nil {
-			return errors.Wrapf(err, "invalid escrow at position: %d ", j)
-		}
-		obj, err := bucket.Build(kv, &escr)
+	for _, e := range escrows {
+		key, err := escrowSeq.NextVal(kv)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "cannot acquire key")
 		}
-		if err := bucket.Save(kv, obj); err != nil {
-			return err
+		escrow := Escrow{
+			Metadata:    &weave.Metadata{Schema: 1},
+			Source:      e.Source,
+			Arbiter:     e.Arbiter,
+			Destination: e.Destination,
+			Timeout:     e.Timeout,
+			Address:     Condition(key).Address(),
 		}
-		escAddr := Condition(obj.Key()).Address()
+		if _, err := bucket.Put(kv, key, &escrow); err != nil {
+			return errors.Wrap(err, "cannot save escrow")
+		}
 		for _, c := range e.Amount {
-			if err := i.Minter.CoinMint(kv, escAddr, *c); err != nil {
+			if err := i.Minter.CoinMint(kv, escrow.Address, *c); err != nil {
 				return errors.Wrap(err, "failed to issue coins")
 			}
 		}

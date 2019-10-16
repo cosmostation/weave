@@ -22,17 +22,10 @@ var _ Coinage = (*Set)(nil)
 
 // Validate requires that all coins are in alphabetical
 func (s *Set) Validate() error {
-	err := errors.Wrap(s.Metadata.Validate(), "metadata")
-	err = errors.Append(err, errors.Wrap(XCoins(s).Validate(), "coins"))
-	return err
-}
-
-// Copy makes a new set with the same coins
-func (s *Set) Copy() orm.CloneableData {
-	return &Set{
-		Metadata: s.Metadata.Copy(),
-		Coins:    XCoins(s).Clone(),
-	}
+	var errs error
+	errs = errors.AppendField(errs, "Metadata", s.Metadata.Validate())
+	errs = errors.AppendField(errs, "Coins", XCoins(s).Validate())
+	return errs
 }
 
 // SetCoins allows us to modify the Set
@@ -126,7 +119,7 @@ var _ WalletBucket = Bucket{}
 // NewBucket initializes a cash.Bucket with default name
 func NewBucket() Bucket {
 	return Bucket{
-		Bucket: migration.NewBucket("cash", BucketName, NewWallet(nil)),
+		Bucket: migration.NewBucket("cash", BucketName, &Set{}),
 	}
 }
 
